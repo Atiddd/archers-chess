@@ -1,33 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Archers Chess vs AI - v1.1 (Fixed)</title>
+<title>Archers Chess - Working Board (Reset)</title>
 <style>
-  body { font-family: Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; margin: 20px; }
-  canvas { border: 4px solid #8b4513; cursor: pointer; background: #deb887; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
-  h1 { color: #8b0000; }
-  #status { font-size: 22px; font-weight: bold; margin: 15px; }
-  select, button { font-size: 18px; padding: 8px 16px; margin: 5px; border-radius: 6px; cursor: pointer; }
-  button { background: #8b4513; color: white; border: none; }
-  button:hover { background: #a0522d; }
+body { font-family: Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; }
+canvas { border: 4px solid #8b4513; cursor: pointer; background: #deb887; }
+h1 { color: #8b0000; }
+#status { font-size: 20px; font-weight: bold; margin: 10px; }
 </style>
 </head>
 <body>
-<h1>🏹 Archers Chess v1.1 by John Patrick Read</h1>
-<p>Play White vs AI. Full rules + Archer + check/checkmate/stalemate.</p>
-<div>
-  <label>AI Difficulty: </label>
-  <select id="aiLevel">
-    <option value="easy">Easy</option>
-    <option value="normal" selected>Normal</option>
-    <option value="hard">Hard</option>
-  </select>
-  <button onclick="init()">New Game</button>
-</div>
-<div id="status">Your Turn (White)</div>
+<h1>🏹 Archers Chess - Reset Working Version</h1>
+<p>Click piece → click target. Archer moves fully validated. White at bottom.</p>
+<div id="status">White's turn</div>
 <canvas id="board" width="600" height="480"></canvas>
 <p>Files: –A A B C D E F G H H+</p>
+<button onclick="init()">New Game</button>
 
 <script>
 const canvas = document.getElementById('board');
@@ -39,8 +27,7 @@ const statusEl = document.getElementById('status');
 
 let board = new Array(FILES * RANKS).fill(null);
 let selected = null;
-let turn = 'w';
-let gameOver = false;
+let turn = 'w'; // 'w' white, 'b' black
 
 const pieceSymbols = {
   'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹',
@@ -48,48 +35,46 @@ const pieceSymbols = {
 };
 
 const dirs = {
-  rook: [[0,1],[0,-1],[1,0],[-1,0]],
-  bishop: [[1,1],[1,-1],[-1,1],[-1,-1]],
-  queen: [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]],
-  king: [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]],
-  knight: [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]]
+  queen: [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]
 };
 
 function init() {
   board.fill(null);
-  board[0*RANKS+0] = 'A'; board[1*RANKS+0] = 'R'; board[2*RANKS+0] = 'N';
-  board[3*RANKS+0] = 'B'; board[4*RANKS+0] = 'Q'; board[5*RANKS+0] = 'K';
-  board[6*RANKS+0] = 'B'; board[7*RANKS+0] = 'N'; board[8*RANKS+0] = 'R'; board[9*RANKS+0] = 'A';
-  for(let f=0;f<FILES;f++) board[f*RANKS+1] = 'P';
-  for(let f=0;f<FILES;f++) board[f*RANKS+6] = 'p';
-  board[0*RANKS+7] = 'a'; board[1*RANKS+7] = 'r'; board[2*RANKS+7] = 'n';
-  board[3*RANKS+7] = 'b'; board[4*RANKS+7] = 'q'; board[5*RANKS+7] = 'k';
-  board[6*RANKS+7] = 'b'; board[7*RANKS+7] = 'n'; board[8*RANKS+7] = 'r'; board[9*RANKS+7] = 'a';
+  // White back rank (rank 0 = 1)
+  board[0*RANKS + 0] = 'A'; board[1*RANKS + 0] = 'R'; board[2*RANKS + 0] = 'N';
+  board[3*RANKS + 0] = 'B'; board[4*RANKS + 0] = 'Q'; board[5*RANKS + 0] = 'K';
+  board[6*RANKS + 0] = 'B'; board[7*RANKS + 0] = 'N'; board[8*RANKS + 0] = 'R'; board[9*RANKS + 0] = 'A';
+  for (let f = 0; f < FILES; f++) board[f*RANKS + 1] = 'P';
+  // Black pawns
+  for (let f = 0; f < FILES; f++) board[f*RANKS + 6] = 'p';
+  // Black back rank
+  board[0*RANKS + 7] = 'a'; board[1*RANKS + 7] = 'r'; board[2*RANKS + 7] = 'n';
+  board[3*RANKS + 7] = 'b'; board[4*RANKS + 7] = 'q'; board[5*RANKS + 7] = 'k';
+  board[6*RANKS + 7] = 'b'; board[7*RANKS + 7] = 'n'; board[8*RANKS + 7] = 'r'; board[9*RANKS + 7] = 'a';
 
   selected = null;
   turn = 'w';
-  gameOver = false;
-  statusEl.textContent = "Your Turn (White)";
+  statusEl.textContent = "White's turn";
   drawBoard();
 }
 
 function idx(f, r) { return f * RANKS + r; }
 function fileOf(sq) { return Math.floor(sq / RANKS); }
 function rankOf(sq) { return sq % RANKS; }
-function isOnBoard(f,r) { return f>=0 && f<FILES && r>=0 && r<RANKS; }
+function isOnBoard(f, r) { return f >= 0 && f < FILES && r >= 0 && r < RANKS; }
 function pieceAt(sq) { return board[sq]; }
 function isWhite(p) { return p && p === p.toUpperCase(); }
-function sameSide(p1,p2) { return p1 && p2 && isWhite(p1) === isWhite(p2); }
+function sameSide(p1, p2) { return p1 && p2 && isWhite(p1) === isWhite(p2); }
 
 function drawBoard() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  for(let r=7; r>=0; r--) {
-    for(let f=0; f<FILES; f++) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let r = 7; r >= 0; r--) {
+    for (let f = 0; f < FILES; f++) {
       let x = f * SQ;
       let y = (7 - r) * SQ;
       ctx.fillStyle = ((f + r) % 2 === 0) ? '#f0d9b5' : '#b58863';
       ctx.fillRect(x, y, SQ, SQ);
-      let p = pieceAt(idx(f,r));
+      let p = pieceAt(idx(f, r));
       if (p) {
         ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
         ctx.font = 'bold 48px serif';
@@ -97,19 +82,20 @@ function drawBoard() {
         ctx.textBaseline = 'middle';
         ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 4);
       }
-      if (selected === idx(f,r)) {
+      if (selected === idx(f, r)) {
         ctx.strokeStyle = '#ffeb3b';
         ctx.lineWidth = 5;
-        ctx.strokeRect(x+4, y+4, SQ-8, SQ-8);
+        ctx.strokeRect(x + 4, y + 4, SQ - 8, SQ - 8);
       }
     }
   }
 }
 
 function isPathClear(startSq, endSq, dx, dy) {
-  let f = fileOf(startSq) + dx, r = rankOf(startSq) + dy;
+  let f = fileOf(startSq) + dx;
+  let r = rankOf(startSq) + dy;
   while (f !== fileOf(endSq) || r !== rankOf(endSq)) {
-    if (pieceAt(idx(f,r))) return false;
+    if (pieceAt(idx(f, r))) return false;
     f += dx; r += dy;
   }
   return true;
@@ -129,11 +115,84 @@ function isValidMove(startSq, endSq) {
   if (p.toUpperCase() === 'P') {
     let dir = isWhite(p) ? 1 : -1;
     if (dx === 0 && dy === dir && !tp) return true;
-    if (dx === 0 && dy === 2*dir && sr === (isWhite(p)?1:6) && !tp && !pieceAt(idx(sf,sr+dir))) return true;
-    if (Math.abs(dx)===1 && dy===dir && tp) return true;
+    if (dx === 0 && dy === 2 * dir && sr === (isWhite(p) ? 1 : 6) && !tp && !pieceAt(idx(sf, sr + dir))) return true;
+    if (Math.abs(dx) === 1 && dy === dir && tp) return true;
     return false;
   }
 
-  if (p.toUpperCase() === 'N') return dirs.knight.some(d => d[0]===dx && d[1]===dy);
+  if (p.toUpperCase() === 'N') {
+    return dirs.knight.some(d => d[0] === dx && d[1] === dy);
+  }
 
-  if (p.toUpper
+  if (p.toUpperCase() === 'K') {
+    return Math.max(Math.abs(dx), Math.abs(dy)) <= 1;
+  }
+
+  if (p.toUpperCase() === 'A') {
+    for (let [odx, ody] of dirs.queen) {
+      if (odx === 0 && ody === 0) continue;
+      let f1 = sf + odx, r1 = sr + ody;
+      let f2 = f1 + odx, r2 = r1 + ody;
+      let f3 = f2 + odx, r3 = r2 + ody;
+      if (!isOnBoard(f3, r3)) continue;
+      if ((odx === 0 || ody === 0) && (pieceAt(idx(f1, r1)) || pieceAt(idx(f2, r2)) || pieceAt(idx(f3, r3)))) continue;
+      const back = [-odx, -ody];
+      const offsets = [[back[0] - ody, back[1] + odx], [back[0] + ody, back[1] - odx]];
+      for (let [ox, oy] of offsets) {
+        const len = Math.hypot(ox, oy);
+        if (len === 0) continue;
+        const sx = Math.round(ox / len);
+        const sy = Math.round(oy / len);
+        const ff = f3 + sx;
+        const rr = r3 + sy;
+        if (isOnBoard(ff, rr) && ff === ef && rr === er) return true;
+      }
+    }
+    return false;
+  }
+
+  // Sliding pieces
+  let slides = [];
+  if (p.toUpperCase() === 'R') slides = dirs.rook;
+  if (p.toUpperCase() === 'B') slides = dirs.bishop;
+  if (p.toUpperCase() === 'Q') slides = dirs.queen;
+  for (let [ddx, ddy] of slides) {
+    if (ddx * dy === ddy * dx && Math.sign(ddx) === Math.sign(dx) && Math.sign(ddy) === Math.sign(dy)) {
+      return isPathClear(startSq, endSq, Math.sign(dx), Math.sign(dy));
+    }
+  }
+  return false;
+}
+
+canvas.addEventListener('click', e => {
+  if (gameOver) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const f = Math.floor(x / SQ);
+  const r = 7 - Math.floor(y / SQ);
+  if (!isOnBoard(f, r)) return;
+  const sq = idx(f, r);
+
+  if (selected === null) {
+    const p = pieceAt(sq);
+    if (p && isWhite(p) === (turn === 'w')) {
+      selected = sq;
+      drawBoard();
+    }
+  } else {
+    if (isValidMove(selected, sq)) {
+      board[sq] = pieceAt(selected);
+      board[selected] = null;
+      turn = turn === 'w' ? 'b' : 'w';
+      statusEl.textContent = `${turn === 'w' ? 'White' : 'Black'}'s turn`;
+    }
+    selected = null;
+    drawBoard();
+  }
+});
+
+init();
+</script>
+</body>
+</html>
