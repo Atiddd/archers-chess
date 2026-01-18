@@ -256,7 +256,116 @@ function isCheckmateOrStalemate() {
 }
 
 // isValidMove function (from previous version - add here if needed)
-// ... (keep your existing isValidMove, pawn promotion, etc. - insert the full one from last working code)
+  function isValidMove(startSq, endSq) {
+  if (startSq === endSq) return false;
+  let p = pieceAt(startSq);
+  if (!p) return false;
+  let tp = pieceAt(endSq);
+  if (tp && sameSide(p, tp)) return false; // own piece
+
+  let sf = fileOf(startSq), sr = rankOf(startSq);
+  let ef = fileOf(endSq), er = rankOf(endSq);
+  let dx = ef - sf, dy = er - sr;
+  let dist = Math.max(Math.abs(dx), Math.abs(dy));
+
+  if (p.toUpperCase() === 'P') { // Pawn
+    let dir = isWhite(p) ? 1 : -1;
+    if (dx === 0 && dy === dir && !tp) return true; // forward 1
+    if (dx === 0 && dy === 2*dir && sr === (isWhite(p)?1:6) && !tp && !pieceAt(idx(sf,sr+dir))) return true; // double
+    if (Math.abs(dx)===1 && dy===dir && tp) return true; // capture
+    return false;
+  }
+
+  if (p.toUpperCase() === 'N') { // Knight
+    return dirs.knight.some(d => d[0]===dx && d[1]===dy);
+  }
+
+  if (p.toUpperCase() === 'K') { // King (simplified - no castling yet)
+    return dist <= 1;
+  }
+
+  if (p.toUpperCase() === 'A') { // Archer !!!
+    const outDirs = dirs.queen; // straight + diag
+    for (let [odx, ody] of outDirs) {
+      if (odx===0 && ody===0) continue;
+      let f1 = sf + odx, r1 = sr + ody;
+      let f2 = f1 + odx, r2 = r1 + ody;
+      let f3 = f2 + odx, r3 = r2 + ody;
+      if (!isOnBoard(f3,r3)) continue;
+      // Straight: no jump
+      if (odx===0 || ody===0) {
+        if (pieceAt(idx(f1,r1)) || pieceAt(idx(f2,r2)) || pieceAt(idx(f3,r3))) continue;
+      }
+      // Now return step - two diagonal back offsets
+      // Left & right relative to direction
+      let back = [-odx, -ody];
+      let left  = [back[0] - ody, back[1] + odx];
+      let right = [back[0] + ody, back[1] - odx];
+      // Normalize to unit step
+      [left, right].forEach(v => {
+        let len = Math.sqrt(v[0]*v[0] + v[1]*v[1]);
+        if (len === 0) return;
+        v[0] = Math.round(v[0]/len); v[1] = Math.round(v[1]/len);
+      });
+      for (let v of [left, right]) {
+        let ff = f3 + v[0], rr = r3 + v[1];
+        if (isOnBoard(ff,rr) && ff===ef && rr===er) return true;
+      }
+    }
+    return false;
+  }
+
+  // Sliding pieces (R,B,Q)
+  let slides = p.toUpperCase() === 'R' ? dirs.rook :
+               p.toUpperCase() === 'B' ? dirs.bishop :
+               p.toUpperCase() === 'Q' ? dirs.queen : [];
+  for (let [ddx, ddy] of slides) {
+    if (ddx*dy === ddy*dx && Math.sign(ddx)===Math.sign(dx) && Math.sign(ddy)===Math.sign(dy)) {
+      let stepX = Math.sign(dx), stepY = Math.sign(dy);
+      return isPathClear(startSq, endSq, stepX, stepY);
+    }
+  }
+  return false;
+}
+
+// === Game Logic ===
+function makeMove(startSq, endSq) {
+  let p = pieceAt(startSq);
+  board[endSq] = p;
+  board[startSq] = null;
+  // Simple promotion (to Q)
+  if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
+  if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
+  turn = turn === 'w' ? 'b' : 'w';
+  drawBoard();
+}
+
+canvas.addEventListener('click', e => {
+  if (gameOver || turn === 'b') return;
+  let rect = canvas.getBoundingClientRect();
+  let x = e.clientX - rect.left;
+  let y = e.clientY - rect.top;
+  let f = Math.floor(x / SQ);
+  let r = 7 - Math.floor(y / SQ);
+  if (!isOnBoard(f,r)) return;
+  let sq = idx(f,r);
+
+  if (selected === null) {
+    let p = pieceAt(sq);
+    if (p && isWhite(p)) {
+      selected = sq;
+      drawBoard();
+    }
+  } else {
+    if (isValidMove(selected, sq)) {
+      makeMove(selected, sq);
+      turnEl.textContent = "Thinking...";
+      setTimeout(aiMove, 600); // slight delay for feel
+    }
+    selected = null;
+    drawBoard();
+  }
+});
 
 function makeMove(startSq, endSq) {
   let p = pieceAt(startSq);
@@ -392,3 +501,4 @@ init();
 </script>
 </body>
 </html>
+
