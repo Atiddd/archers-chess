@@ -1,6 +1,393 @@
 <!DOCTYPE html>
 <html>
 <head>
+<title>Archers Chess vs AI - v1.1 Checkmate + Levels</title>
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; margin: 10px; }
+  canvas { border: 4px solid #8b4513; cursor: pointer; background: #deb887; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+  h1 { color: #8b0000; margin: 10px; }
+  #status { font-size: 22px; font-weight: bold; margin: 15px; color: #444; }
+  #level { margin: 10px; }
+  select, button { font-size: 18px; padding: 8px 16px; margin: 5px; border-radius: 6px; cursor: pointer; }
+  button { background: #8b4513; color: white; border: none; }
+  button:hover { background: #a0522d; }
+</style>
+</head>
+<body>
+<h1>🏹 Archers Chess v1.1 - Play White vs AI</h1>
+<p>Full rules + Archer + check/checkmate/stalemate. Choose AI level:</p>
+<div id="level">
+  <label>AI Difficulty: </label>
+  <select id="aiLevel">
+    <option value="easy">Easy</option>
+    <option value="normal" selected>Normal</option>
+    <option value="hard">Hard</option>
+  </select>
+  <button onclick="init()">New Game</button>
+</div>
+<div id="status">Your Turn (White)</div>
+<canvas id="board" width="600" height="480"></canvas>
+<p>Files: –A A B C D E F G H H+</p>
+
+<script>
+// === Setup ===
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+const SQ = 60;
+const FILES = 10;
+const RANKS = 8;
+const statusEl = document.getElementById('status');
+
+let board = new Array(FILES * RANKS).fill(null);
+let selected = null;
+let turn = 'w'; // 'w' white, 'b' black
+let gameOver = false;
+
+const pieceSymbols = {
+  'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹',
+  'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🏹'
+};
+
+const fileLabels = ['–A','A','B','C','D','E','F','G','H','H+'];
+
+// Init board
+function init() {
+  board.fill(null);
+  // White rank 1 (0)
+  board[0*RANKS+0] = 'A'; board[1*RANKS+0] = 'R'; board[2*RANKS+0] = 'N';
+  board[3*RANKS+0] = 'B'; board[4*RANKS+0] = 'Q'; board[5*RANKS+0] = 'K';
+  board[6*RANKS+0] = 'B'; board[7*RANKS+0] = 'N'; board[8*RANKS+0] = 'R'; board[9*RANKS+0] = 'A';
+  for(let f=0;f<FILES;f++) board[f*RANKS+1] = 'P';
+  // Black
+  for(let f=0;f<FILES;f++) board[f*RANKS+6] = 'p';
+  board[0*RANKS+7] = 'a'; board[1*RANKS+7] = 'r'; board[2*RANKS+7] = 'n';
+  board[3*RANKS+7] = 'b'; board[4*RANKS+7] = 'q'; board[5*RANKS+7] = 'k';
+  board[6*RANKS+7] = 'b'; board[7*RANKS+7] = 'n'; board[8*RANKS+7] = 'r'; board[9*RANKS+7] = 'a';
+
+  selected = null;
+  turn = 'w';
+  gameOver = false;
+  statusEl.textContent = "Your Turn (White)";
+  drawBoard();
+}
+
+// Helpers
+function idx(f, r) { return f * RANKS + r; }
+function fileOf(sq) { return Math.floor(sq / RANKS); }
+function rankOf(sq) { return sq % RANKS; }
+function isOnBoard(f,r) { return f>=0 && f<FILES && r>=0 && r<RANKS; }
+function pieceAt(sq) { return board[sq]; }
+function isWhite(p) { return p && p === p.toUpperCase(); }
+function sameSide(p1,p2) { return p1 && p2 && isWhite(p1) === isWhite(p2); }
+
+function drawBoard() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let r=7; r>=0; r--) {
+    for(let f=0; f<FILES; f++) {
+      let x = f * SQ;
+      let y = (7 - r) * SQ;
+      ctx.fillStyle = ((f + r) % 2 === 0) ? '#f0d9b5' : '#b58863';
+      ctx.fillRect(x, y, SQ, SQ);
+      let p = pieceAt(idx(f,r));
+      if (p) {
+        ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
+        ctx.font = 'bold 48px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 4);
+      }
+      if (selected === idx(f,r)) {
+        ctx.strokeStyle = '#ffeb3b';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(x+4, y+4, SQ-8, SQ-8);
+      }
+    }
+  }
+}
+
+// Directions
+const dirs = {
+  rook:   [[0,1],[0,-1],[1,0],[-1,0]],
+  bishop: [[1,1],[1,-1],[-1,1],[-1,-1]],
+  queen:  [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]],
+  king:   [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]],
+  knight: [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]]
+};
+
+function isPathClear(startSq, endSq, dx, dy) {
+  let f = fileOf(startSq) + dx, r = rankOf(startSq) + dy;
+  while (f !== fileOf(endSq) || r !== rankOf(endSq)) {
+    if (pieceAt(idx(f,r))) return false;
+    f += dx; r += dy;
+  }
+  return true;
+}
+
+function getKingPos(color) {
+  const k = color === 'w' ? 'K' : 'k';
+  for (let sq = 0; sq < board.length; sq++) {
+    if (pieceAt(sq) === k) return sq;
+  }
+  return -1;
+}
+
+// Is square attacked by opponent?
+function isAttacked(sq, attackerColor) {
+  const af = fileOf(sq), ar = rankOf(sq);
+  const opp = attackerColor === 'w' ? 'w' : 'b';
+  const own = attackerColor === 'w' ? 'b' : 'w';
+
+  // Pawn attacks
+  const pDir = attackerColor === 'w' ? 1 : -1;
+  const pawnAtt = [[-1, pDir], [1, pDir]];
+  for (let [dx, dy] of pawnAtt) {
+    let f = af + dx, r = ar + dy;
+    if (isOnBoard(f,r) && pieceAt(idx(f,r))?.toUpperCase() === 'P' && isWhite(pieceAt(idx(f,r))) === (attackerColor === 'w')) return true;
+  }
+
+  // Knight
+  for (let [dx, dy] of dirs.knight) {
+    let f = af + dx, r = ar + dy;
+    if (isOnBoard(f,r) && pieceAt(idx(f,r))?.toUpperCase() === 'N' && isWhite(pieceAt(idx(f,r))) === (attackerColor === 'w')) return true;
+  }
+
+  // King
+  for (let [dx, dy] of dirs.king) {
+    let f = af + dx, r = ar + dy;
+    if (isOnBoard(f,r) && pieceAt(idx(f,r))?.toUpperCase() === 'K' && isWhite(pieceAt(idx(f,r))) === (attackerColor === 'w')) return true;
+  }
+
+  // Sliding + Archer
+  for (let [dx, dy] of dirs.queen) {
+    let f = af + dx, r = ar + dy;
+    while (isOnBoard(f,r)) {
+      let p = pieceAt(idx(f,r));
+      if (p) {
+        if (isWhite(p) === (attackerColor === 'w')) {
+          const up = p.toUpperCase();
+          if ((up === 'Q' || up === 'R' || up === 'B') &&
+              ((dx !== 0 && dy !== 0) === (up === 'B' || up === 'Q')) &&
+              ((dx === 0 || dy === 0) === (up === 'R' || up === 'Q'))) {
+            if (isPathClear(sq, idx(f,r), dx, dy)) return true;
+          }
+          // Archer: only if this is the FINAL square of an Archer move
+          if (up === 'A') {
+            // Check if sq is a valid final for this Archer
+            if (isArcherFinal(idx(f,r), sq)) return true;
+          }
+        }
+        break;
+      }
+      f += dx; r += dy;
+    }
+  }
+
+  return false;
+}
+
+// Check if target is valid FINAL for Archer at archerSq
+function isArcherFinal(archerSq, targetSq) {
+  let sf = fileOf(archerSq), sr = rankOf(archerSq);
+  let tf = fileOf(targetSq), tr = rankOf(targetSq);
+  const outDirs = dirs.queen;
+  for (let [odx, ody] of outDirs) {
+    if (odx===0 && ody===0) continue;
+    let f1 = sf + odx, r1 = sr + ody;
+    let f2 = f1 + odx, r2 = r1 + ody;
+    let f3 = f2 + odx, r3 = r2 + ody;
+    if (!isOnBoard(f3,r3)) continue;
+    if ((odx===0 || ody===0) && (pieceAt(idx(f1,r1)) || pieceAt(idx(f2,r2)) || pieceAt(idx(f3,r3)))) continue;
+    // Return steps
+    const back = [-odx, -ody];
+    const left = [back[0] - ody, back[1] + odx];
+    const right = [back[0] + ody, back[1] - odx];
+    [left, right].forEach(v => {
+      const len = Math.hypot(v[0], v[1]);
+      if (len > 0) {
+        v[0] = Math.round(v[0]/len); v[1] = Math.round(v[1]/len);
+      }
+    });
+    for (let v of [left, right]) {
+      let ff = f3 + v[0], rr = r3 + v[1];
+      if (isOnBoard(ff,rr) && ff===tf && rr===tr) return true;
+    }
+  }
+  return false;
+}
+
+function inCheck() {
+  const kingSq = getKingPos(turn);
+  if (kingSq === -1) return false;
+  return isAttacked(kingSq, turn === 'w' ? 'b' : 'w');
+}
+
+function getAllLegalMoves(color) {
+  const moves = [];
+  const ownColor = color === 'w' ? true : false;
+  for (let sq = 0; sq < board.length; sq++) {
+    const p = pieceAt(sq);
+    if (!p || isWhite(p) !== ownColor) continue;
+    for (let t = 0; t < board.length; t++) {
+      if (isValidMove(sq, t)) {
+        // Simulate move to check if it leaves king in check
+        const backupFrom = board[sq], backupTo = board[t];
+        board[t] = backupFrom;
+        board[sq] = null;
+        const stillInCheck = inCheckForColor(color);
+        board[sq] = backupFrom;
+        board[t] = backupTo;
+        if (!stillInCheck) moves.push({from: sq, to: t});
+      }
+    }
+  }
+  return moves;
+}
+
+function inCheckForColor(color) {
+  const kingSq = getKingPos(color);
+  return kingSq !== -1 && isAttacked(kingSq, color === 'w' ? 'b' : 'w');
+}
+
+function isCheckmateOrStalemate() {
+  const moves = getAllLegalMoves(turn);
+  if (moves.length > 0) return {over: false};
+  if (inCheck()) return {over: true, type: 'checkmate', winner: turn === 'w' ? 'Black' : 'White'};
+  return {over: true, type: 'stalemate'};
+}
+
+// isValidMove function (from previous version - add here if needed)
+// ... (keep your existing isValidMove, pawn promotion, etc. - insert the full one from last working code)
+
+function makeMove(startSq, endSq) {
+  let p = pieceAt(startSq);
+  board[endSq] = p;
+  board[startSq] = null;
+  // Promotion
+  if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
+  if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
+  turn = turn === 'w' ? 'b' : 'w';
+}
+
+canvas.addEventListener('click', e => {
+  if (gameOver || turn === 'b') return;
+  let rect = canvas.getBoundingClientRect();
+  let x = e.clientX - rect.left;
+  let y = e.clientY - rect.top;
+  let f = Math.floor(x / SQ);
+  let r = 7 - Math.floor(y / SQ);
+  if (!isOnBoard(f,r)) return;
+  let sq = idx(f,r);
+
+  if (selected === null) {
+    let p = pieceAt(sq);
+    if (p && isWhite(p)) {
+      selected = sq;
+      drawBoard();
+    }
+  } else {
+    if (isValidMove(selected, sq)) {
+      makeMove(selected, sq);
+      drawBoard();
+      const state = isCheckmateOrStalemate();
+      if (state.over) {
+        gameOver = true;
+        if (state.type === 'checkmate') {
+          statusEl.textContent = `Checkmate! ${state.winner} wins!`;
+        } else {
+          statusEl.textContent = "Stalemate - Draw!";
+        }
+      } else if (inCheck()) {
+        statusEl.textContent = "Check! Your Turn (White)";
+      } else {
+        statusEl.textContent = "Your Turn (White)";
+      }
+      if (!gameOver && turn === 'b') {
+        statusEl.textContent = "AI Thinking...";
+        setTimeout(aiMove, 400);
+      }
+    }
+    selected = null;
+    drawBoard();
+  }
+});
+
+// AI (with depth)
+const depthMap = { easy: 1, normal: 2, hard: 3 };
+
+function aiMove() {
+  if (gameOver || turn !== 'b') return;
+  const level = document.getElementById('aiLevel').value;
+  const depth = depthMap[level];
+  // Simple recursive minimax stub (expand as needed)
+  // For now, use greedy + limited depth
+  let bestMove = null;
+  let bestScore = -Infinity;
+  const moves = getAllLegalMoves('b');
+  for (let m of moves) {
+    const backupFrom = board[m.from], backupTo = board[m.to];
+    makeMove(m.from, m.to);
+    let score = evaluate() * (inCheck() ? -1000 : 1); // bonus for check
+    if (depth > 1) score += simpleMinimax(depth - 1, false) * 0.1;
+    board[m.from] = backupFrom; board[m.to] = backupTo; turn = 'b';
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = m;
+    }
+  }
+  if (bestMove) {
+    makeMove(bestMove.from, bestMove.to);
+    drawBoard();
+    const state = isCheckmateOrStalemate();
+    if (state.over) {
+      gameOver = true;
+      if (state.type === 'checkmate') {
+        statusEl.textContent = `Checkmate! ${state.winner} wins!`;
+      } else {
+        statusEl.textContent = "Stalemate - Draw!";
+      }
+    } else if (inCheck()) {
+      statusEl.textContent = "Check! Your Turn (White)";
+    } else {
+      statusEl.textContent = "Your Turn (White)";
+    }
+  } else {
+    statusEl.textContent = "AI has no moves - Game Over";
+    gameOver = true;
+  }
+}
+
+// Very basic evaluation (material)
+function evaluate() {
+  let score = 0;
+  const values = {P:1, N:3, B:3, R:5, Q:9, K:0, A:4};
+  for (let sq = 0; sq < board.length; sq++) {
+    const p = pieceAt(sq);
+    if (p) {
+      const v = values[p.toUpperCase()] || 0;
+      score += isWhite(p) ? v : -v;
+    }
+  }
+  return score;
+}
+
+function simpleMinimax(depth, maximizing) {
+  if (depth === 0) return evaluate();
+  const moves = getAllLegalMoves(maximizing ? 'b' : 'w');
+  if (moves.length === 0) return inCheckForColor(maximizing ? 'b' : 'w') ? (maximizing ? -9999 : 9999) : 0;
+  let best = maximizing ? -Infinity : Infinity;
+  for (let m of moves) {
+    const backupFrom = board[m.from], backupTo = board[m.to];
+    makeMove(m.from, m.to);
+    const val = simpleMinimax(depth - 1, !maximizing);
+    board[m.from] = backupFrom; board[m.to] = backupTo; turn = maximizing ? 'b' : 'w';
+    best = maximizing ? Math.max(best, val) : Math.min(best, val);
+  }
+  return best;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
 <title>Archers Chess vs AI - v1.0 by John Patrick Read</title>
 <style>
   body { font-family: Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; margin: 10px; }
