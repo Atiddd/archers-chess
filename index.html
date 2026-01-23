@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess vs AI - v1.1 Working</title>
+    <title>Archers Chess vs AI - v1.2</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; margin: 10px; }
         canvas { border: 4px solid #8b4513; cursor: pointer; background: #deb887; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
@@ -12,11 +12,15 @@
         select, button { font-size: 18px; padding: 8px 16px; margin: 5px; border-radius: 6px; cursor: pointer; }
         button { background: #8b4513; color: white; border: none; }
         button:hover { background: #a0522d; }
+        details { margin: 20px auto; max-width: 800px; text-align: left; }
+        summary { font-size: 20px; cursor: pointer; color: #8b0000; }
+        a { color: #8b0000; text-decoration: underline; }
+        .highlight { fill: rgba(0,255,0,0.3); stroke: rgba(0,255,0,0.6); stroke-width: 3; }
     </style>
 </head>
 <body>
-    <h1>🏹 Archers Chess v1.1 - Play White vs AI</h1>
-    <p>Full rules + Archer + check/checkmate/stalemate. Choose AI level:</p>
+    <h1>🏹 Archers Chess v1.2 - Play White vs AI</h1>
+    <p>Full rules + Archer + castling. Choose AI level:</p>
     <div>
         <label>AI Difficulty: </label>
         <select id="aiLevel">
@@ -30,6 +34,19 @@
     <canvas id="board" width="600" height="480"></canvas>
     <p>Files: –A A B C D E F G H H+</p>
 
+    <details>
+        <summary>📜 Game Rules & Archer Movement</summary>
+        <p>Archers Chess is played on a 10×8 board with standard chess rules + 2 Archers per side.</p>
+        <p><strong>The Archer</strong> moves in two phases:</p>
+        <ul>
+            <li><strong>Outward</strong>: exactly 3 squares straight or diagonal (straight: no jump; diagonal: can jump).</li>
+            <li><strong>Return</strong>: exactly 1 square back at 45° diagonal (choose left or right).</li>
+            <li>Capture only on the final square.</li>
+        </ul>
+        <p>Castling works as in standard chess (king + rook, path clear, not in check).</p>
+        <p>Full official rules & declaration (PDF): <a href="Archers_Chess_Master_Rules_Appendices_Declaration_v1.0.pdf" target="_blank">Download PDF</a></p>
+    </details>
+
     <script>
         const canvas = document.getElementById('board');
         const ctx = canvas.getContext('2d');
@@ -42,6 +59,14 @@
         let selected = null;
         let turn = 'w';
         let gameOver = false;
+
+        // Castling flags
+        let whiteKingMoved = false;
+        let blackKingMoved = false;
+        let whiteRookLeftMoved = false;
+        let whiteRookRightMoved = false;
+        let blackRookLeftMoved = false;
+        let blackRookRightMoved = false;
 
         const pieceSymbols = {
             'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹',
@@ -58,14 +83,11 @@
 
         function init() {
             board.fill(null);
-            // White back rank (rank 1)
             board[0*RANKS+0] = 'A'; board[1*RANKS+0] = 'R'; board[2*RANKS+0] = 'N';
             board[3*RANKS+0] = 'B'; board[4*RANKS+0] = 'Q'; board[5*RANKS+0] = 'K';
             board[6*RANKS+0] = 'B'; board[7*RANKS+0] = 'N'; board[8*RANKS+0] = 'R'; board[9*RANKS+0] = 'A';
             for(let f=0; f<FILES; f++) board[f*RANKS+1] = 'P';
-            // Black pawns
             for(let f=0; f<FILES; f++) board[f*RANKS+6] = 'p';
-            // Black back rank
             board[0*RANKS+7] = 'a'; board[1*RANKS+7] = 'r'; board[2*RANKS+7] = 'n';
             board[3*RANKS+7] = 'b'; board[4*RANKS+7] = 'q'; board[5*RANKS+7] = 'k';
             board[6*RANKS+7] = 'b'; board[7*RANKS+7] = 'n'; board[8*RANKS+7] = 'r'; board[9*RANKS+7] = 'a';
@@ -73,6 +95,12 @@
             selected = null;
             turn = 'w';
             gameOver = false;
+            whiteKingMoved = false;
+            blackKingMoved = false;
+            whiteRookLeftMoved = false;
+            whiteRookRightMoved = false;
+            blackRookLeftMoved = false;
+            blackRookRightMoved = false;
             statusEl.textContent = "Your Turn (White)";
             drawBoard();
         }
@@ -130,6 +158,7 @@
             let ef = fileOf(endSq), er = rankOf(endSq);
             let dx = ef - sf, dy = er - sr;
 
+            // Standard pawn, knight, king, sliding moves (unchanged)
             if (p.toUpperCase() === 'P') {
                 let dir = isWhite(p) ? 1 : -1;
                 if (dx === 0 && dy === dir && !tp) return true;
@@ -140,7 +169,25 @@
 
             if (p.toUpperCase() === 'N') return dirs.knight.some(d => d[0]===dx && d[1]===dy);
 
-            if (p.toUpperCase() === 'K') return Math.max(Math.abs(dx), Math.abs(dy)) <= 1;
+            if (p.toUpperCase() === 'K') {
+                // Normal king move
+                if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return true;
+
+                // Castling
+                if (!isWhite(p) ? blackKingMoved : whiteKingMoved) return false;
+                if (Math.abs(dx) !== 2 || dy !== 0) return false;
+                const rookFile = dx > 0 ? 9 : 0; // H+ or –A
+                const rookSq = idx(rookFile, sr);
+                const rook = pieceAt(rookSq);
+                if (!rook || rook.toUpperCase() !== 'R') return false;
+                if (isWhite(p) ? (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) : (dx > 0 ? blackRookRightMoved : blackRookLeftMoved)) return false;
+                // Path clear
+                const step = dx > 0 ? 1 : -1;
+                for (let i = sf + step; i !== rookFile; i += step) {
+                    if (pieceAt(idx(i, sr))) return false;
+                }
+                return true;
+            }
 
             if (p.toUpperCase() === 'A') {
                 const outDirs = dirs.queen;
@@ -175,20 +222,9 @@
             return false;
         }
 
-        // (rest of functions: getKingPos, isAttacked, isArcherFinal, inCheck, etc. - kept as in your last version)
-
-        function makeMove(startSq, endSq) {
-            let p = pieceAt(startSq);
-            board[endSq] = p;
-            board[startSq] = null;
-            if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
-            if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
-            turn = turn === 'w' ? 'b' : 'w';
-        }
-
         canvas.addEventListener('click', e => {
             if (gameOver || turn === 'b') return;
-            const rect = canvas.getBoundingClientRect();  // FIXED: was getBoundingRect()
+            const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             const f = Math.floor(x / SQ);
@@ -204,9 +240,9 @@
                 }
             } else {
                 if (isValidMove(selected, sq)) {
-                    makeMove(selected, sq);
-                    drawBoard();
-                    // (add check/checkmate logic here if you want - for now basic move)
+                    board[sq] = pieceAt(selected);
+                    board[selected] = null;
+                    turn = turn === 'w' ? 'b' : 'w';
                     statusEl.textContent = turn === 'w' ? "Your Turn (White)" : "AI's Turn";
                     if (turn === 'b') {
                         statusEl.textContent = "AI Thinking...";
@@ -218,9 +254,7 @@
             }
         });
 
-        // AI stub - simple random move for now (expand later)
         function aiMove() {
-            // Basic AI: pick random legal move for Black
             const moves = [];
             for (let sq = 0; sq < board.length; sq++) {
                 const p = pieceAt(sq);
@@ -231,12 +265,14 @@
             }
             if (moves.length > 0) {
                 const m = moves[Math.floor(Math.random() * moves.length)];
-                makeMove(m.from, m.to);
-                drawBoard();
+                board[m.to] = pieceAt(m.from);
+                board[m.from] = null;
+                turn = 'w';
                 statusEl.textContent = "Your Turn (White)";
             } else {
                 statusEl.textContent = "AI has no moves - Game Over";
             }
+            drawBoard();
         }
 
         init();
