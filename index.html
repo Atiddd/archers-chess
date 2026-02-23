@@ -3,48 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess vs AI - v1.4 (Castling Fixed)</title>
+    <title>Archers Chess v1.4 - Fixed Markers</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; margin: 10px; }
-        canvas { border: 4px solid #8b4513; cursor: pointer; background: #deb887; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
-        h1 { color: #8b0000; margin: 10px; }
-        #status { font-size: 22px; font-weight: bold; margin: 15px; color: #444; }
-        select, button { font-size: 18px; padding: 8px 16px; margin: 5px; border-radius: 6px; cursor: pointer; }
-        button { background: #8b4513; color: white; border: none; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; margin: 10px; }
+        canvas { border: 5px solid #5d3411; cursor: pointer; background: #deb887; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+        h1 { color: #8b0000; margin: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        #status { font-size: 22px; font-weight: bold; margin: 15px; color: #444; height: 30px; }
+        select, button { font-size: 16px; padding: 8px 16px; margin: 5px; border-radius: 6px; cursor: pointer; border: 1px solid #8b4513; }
+        button { background: #8b4513; color: white; transition: 0.2s; }
         button:hover { background: #a0522d; }
-        details { margin: 20px auto; max-width: 900px; text-align: left; border: 1px solid #ccc; padding: 10px; border-radius: 8px; background: #fff8e7; }
-        summary { font-size: 20px; cursor: pointer; color: #8b0000; font-weight: bold; }
-        a { color: #8b0000; text-decoration: underline; }
+        details { margin: 20px auto; max-width: 800px; text-align: left; border: 1px solid #b58863; padding: 15px; border-radius: 8px; background: #fff8e7; }
+        summary { font-size: 18px; cursor: pointer; color: #8b0000; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>🏹 Archers Chess v1.4 - Play White vs AI</h1>
-    <p>Full rules + Archer + castling (fixed) + tile labels. Choose AI level:</p>
+    <h1>🏹 Archers Chess v1.4</h1>
     <div>
         <label for="aiLevel">AI Difficulty: </label>
         <select id="aiLevel">
             <option value="easy">Easy</option>
             <option value="normal" selected>Normal</option>
-            <option value="hard">Hard</option>
         </select>
-        <button onclick="init()">New Game</button>
+        <button onclick="init()">Reset Game</button>
     </div>
     <div id="status">Your Turn (White)</div>
     <canvas id="board" width="600" height="480"></canvas>
-    <p>Files: –A A B C D E F G H H+</p>
 
     <details open>
-        <summary>📜 Game Rules & Archer Movement (click to collapse)</summary>
-        <p>Archers Chess is played on a 10×8 board with standard chess rules + 2 Archers per side.</p>
-        <p><strong>The Archer</strong> moves in two mandatory phases:</p>
-        <ul>
-            <li><strong>Outward</strong>: exactly 3 squares straight or diagonal (straight: no jump; diagonal: can jump).</li>
-            <li><strong>Return</strong>: exactly 1 square back at 45° diagonal (choose left or right).</li>
-            <li>Capture only on the final square.</li>
-        </ul>
-        <p>Castling works as in standard chess (king + rook, path clear, not in check).</p>
-        <p>Tile labels match official notation: files –A to H+ (left to right from White’s view), ranks 1–8.</p>
-        <p>Full official rules & declaration (PDF): <a href="Archers_Chess_Master_Rules_Appendices_Declaration_v1.0.pdf" target="_blank">Download PDF</a></p>
+        <summary>📜 Game Rules</summary>
+        <p><strong>Castling:</strong> Move King 2 squares toward a Rook. Path must be clear, and neither piece can have moved.</p>
+        <p><strong>Archer:</strong> Moves 3 squares (straight or diagonal), then jumps 1 square diagonally back. Captures only on the final square.</p>
     </details>
 
     <script>
@@ -60,12 +48,9 @@
         let turn = 'w';
         let gameOver = false;
 
-        let whiteKingMoved = false;
-        let blackKingMoved = false;
-        let whiteRookLeftMoved = false;
-        let whiteRookRightMoved = false;
-        let blackRookLeftMoved = false;
-        let blackRookRightMoved = false;
+        let whiteKingMoved = false, blackKingMoved = false;
+        let whiteRookLeftMoved = false, whiteRookRightMoved = false;
+        let blackRookLeftMoved = false, blackRookRightMoved = false;
 
         const pieceSymbols = {
             'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹',
@@ -78,9 +63,16 @@
             rook: [[0,1],[0,-1],[1,0],[-1,0]],
             bishop: [[1,1],[1,-1],[-1,1],[-1,-1]],
             queen: [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]],
-            king: [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]],
             knight: [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]]
         };
+
+        function idx(f, r) { return f * RANKS + r; }
+        function fileOf(sq) { return Math.floor(sq / RANKS); }
+        function rankOf(sq) { return sq % RANKS; }
+        function isOnBoard(f,r) { return f>=0 && f<FILES && r>=0 && r<RANKS; }
+        function pieceAt(sq) { return board[sq]; }
+        function isWhite(p) { return p && p === p.toUpperCase(); }
+        function sameSide(p1,p2) { return p1 && p2 && isWhite(p1) === isWhite(p2); }
 
         function init() {
             board.fill(null);
@@ -91,55 +83,12 @@
                 board[idx(f,6)] = 'p';
                 board[idx(f,7)] = setup[f].toLowerCase();
             }
-            selected = null;
-            turn = 'w';
-            gameOver = false;
-            whiteKingMoved = false;
-            blackKingMoved = false;
-            whiteRookLeftMoved = false;
-            whiteRookRightMoved = false;
-            blackRookLeftMoved = false;
-            blackRookRightMoved = false;
+            selected = null; turn = 'w'; gameOver = false;
+            whiteKingMoved = false; blackKingMoved = false;
+            whiteRookLeftMoved = false; whiteRookRightMoved = false;
+            blackRookLeftMoved = false; blackRookRightMoved = false;
             statusEl.textContent = "Your Turn (White)";
             drawBoard();
-        }
-
-        function idx(f, r) { return f * RANKS + r; }
-        function fileOf(sq) { return Math.floor(sq / RANKS); }
-        function rankOf(sq) { return sq % RANKS; }
-        function isOnBoard(f,r) { return f>=0 && f<FILES && r>=0 && r<RANKS; }
-        function pieceAt(sq) { return board[sq]; }
-        function isWhite(p) { return p && p === p.toUpperCase(); }
-        function sameSide(p1,p2) { return p1 && p2 && isWhite(p1) === isWhite(p2); }
-
-        function drawBoard() {
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            for(let r=7; r>=0; r--) {
-                for(let f=0; f<FILES; f++) {
-                    let x = f * SQ, y = (7 - r) * SQ;
-                    ctx.fillStyle = ((f + r) % 2 === 0) ? '#f0d9b5' : '#b58863';
-                    ctx.fillRect(x, y, SQ, SQ);
-
-                    ctx.font = '10px Arial';
-                    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                    ctx.fillText(fileLabels[f] + (r + 1), x + 2, y + SQ - 2);
-
-                    let p = pieceAt(idx(f,r));
-                    if (p) {
-                        ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
-                        ctx.font = '44px serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 2);
-                    }
-
-                    if (selected === idx(f,r)) {
-                        ctx.strokeStyle = '#ffeb3b';
-                        ctx.lineWidth = 4;
-                        ctx.strokeRect(x+2, y+2, SQ-4, SQ-4);
-                    }
-                }
-            }
         }
 
         function isPathClear(startSq, endSq, df, dr) {
@@ -149,8 +98,7 @@
             const er = rankOf(endSq);
             while (f !== ef || r !== er) {
                 if (!isOnBoard(f,r) || pieceAt(idx(f, r))) return false;
-                f += df;
-                r += dr;
+                f += df; r += dr;
             }
             return true;
         }
@@ -178,16 +126,12 @@
 
             if (p.toUpperCase() === 'K') {
                 if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return true;
-
-                // Castling
                 if (dy !== 0 || Math.abs(dx) !== 2) return false;
                 if (isWhite(p) ? whiteKingMoved : blackKingMoved) return false;
-
-                const rookFile = dx > 0 ? 8 : 1;  // H = 8, A = 1
+                const rookFile = dx > 0 ? 8 : 1; 
                 const rook = pieceAt(idx(rookFile, sr));
                 if (!rook || rook.toUpperCase() !== 'R') return false;
                 if (isWhite(p) ? (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) : (dx > 0 ? blackRookRightMoved : blackRookLeftMoved)) return false;
-
                 const step = dx > 0 ? 1 : -1;
                 for (let i = sf + step; i !== rookFile; i += step) {
                     if (pieceAt(idx(i, sr))) return false;
@@ -196,13 +140,16 @@
             }
 
             if (p.toUpperCase() === 'A') {
-                for (let [odx, ody] of dirs.queen) {
+                const outDirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
+                for (let [odx, ody] of outDirs) {
                     let f3 = sf + odx*3, r3 = sr + ody*3;
                     if (!isOnBoard(f3,r3)) continue;
-                    if ((odx===0 || ody===0) && !isPathClear(startSq, idx(f3, r3), odx, ody)) continue;
-                    const offsets = [[-odx-ody, -ody+odx], [-odx+ody, -ody-odx]];
-                    for (let [ox, oy] of offsets) {
-                        if (f3+Math.sign(ox) === ef && r3+Math.sign(oy) === er) return true;
+                    if ((odx===0 || ody===0) && !isPathClear(startSq, idx(f3, r3), odx, ody)) {
+                        if (pieceAt(idx(sf+odx, sr+ody)) || pieceAt(idx(sf+odx*2, sr+ody*2))) continue;
+                    }
+                    const backOffsets = [[-odx-ody, -ody+odx], [-odx+ody, -ody-odx]];
+                    for (let [ox, oy] of backOffsets) {
+                        if (f3 + ox === ef && r3 + oy === er) return true;
                     }
                 }
                 return false;
@@ -221,7 +168,6 @@
             let p = pieceAt(startSq);
             let sf = fileOf(startSq), ef = fileOf(endSq), r = rankOf(startSq);
 
-            // Handle Castling Rook Jump
             if (p.toUpperCase() === 'K' && Math.abs(ef - sf) === 2) {
                 const rookFromFile = ef > sf ? 8 : 1;
                 const rookToFile = ef > sf ? ef - 1 : ef + 1;
@@ -232,21 +178,13 @@
             board[endSq] = p;
             board[startSq] = null;
 
-            // Promotion
             if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
             if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
 
-            // Update castling flags
             if (p === 'K') whiteKingMoved = true;
             if (p === 'k') blackKingMoved = true;
-            if (p === 'R') {
-                if (sf === 1) whiteRookLeftMoved = true;
-                if (sf === 8) whiteRookRightMoved = true;
-            }
-            if (p === 'r') {
-                if (sf === 1) blackRookLeftMoved = true;
-                if (sf === 8) blackRookRightMoved = true;
-            }
+            if (p === 'R') { if(sf===1) whiteRookLeftMoved = true; if(sf===8) whiteRookRightMoved = true; }
+            if (p === 'r') { if(sf===1) blackRookLeftMoved = true; if(sf===8) blackRookRightMoved = true; }
 
             turn = turn === 'w' ? 'b' : 'w';
         }
@@ -259,22 +197,28 @@
                     ctx.fillStyle = ((f + r) % 2 === 0) ? '#f0d9b5' : '#b58863';
                     ctx.fillRect(x, y, SQ, SQ);
 
-                    ctx.font = '10px Arial';
-                    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                    ctx.fillText(fileLabels[f] + (r + 1), x + 2, y + SQ - 2);
+                    // --- Fixed Tile Markers ---
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    ctx.font = 'bold 12px Arial';
+                    // Rank numbers on the left edge
+                    if (f === 0) {
+                        ctx.textAlign = 'left';
+                        ctx.fillText(r + 1, x + 2, y + 12);
+                    }
+                    // File letters on the bottom edge
+                    if (r === 0) {
+                        ctx.textAlign = 'right';
+                        ctx.fillText(fileLabels[f], x + SQ - 2, y + SQ - 4);
+                    }
 
                     let p = pieceAt(idx(f,r));
                     if (p) {
                         ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
-                        ctx.font = '44px serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 2);
+                        ctx.font = '46px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 4);
                     }
-
                     if (selected === idx(f,r)) {
-                        ctx.strokeStyle = '#ffeb3b';
-                        ctx.lineWidth = 4;
+                        ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 4;
                         ctx.strokeRect(x+2, y+2, SQ-4, SQ-4);
                     }
                 }
@@ -286,29 +230,32 @@
             const rect = canvas.getBoundingClientRect();
             const f = Math.floor((e.clientX - rect.left) / SQ);
             const r = 7 - Math.floor((e.clientY - rect.top) / SQ);
+            if (!isOnBoard(f,r)) return;
             const sq = idx(f,r);
 
             if (selected === null) {
-                if (pieceAt(sq) && isWhite(pieceAt(sq))) {
-                    selected = sq;
-                    drawBoard();
-                }
+                let p = pieceAt(sq);
+                if (p && isWhite(p)) { selected = sq; drawBoard(); }
             } else {
                 if (isValidMove(selected, sq)) {
                     makeMove(selected, sq);
                     drawBoard();
-                    statusEl.textContent = "AI Thinking...";
-                    setTimeout(aiMove, 500);
+                    if (!gameOver && turn === 'b') {
+                        statusEl.textContent = "AI Thinking...";
+                        setTimeout(aiMove, 500);
+                    }
+                } else {
+                    selected = null;
+                    drawBoard();
                 }
-                selected = null;
-                drawBoard();
             }
         });
 
         function aiMove() {
             let moves = [];
             for (let s = 0; s < board.length; s++) {
-                if (board[s] && !isWhite(board[s])) {
+                let p = board[s];
+                if (p && !isWhite(p)) {
                     for (let t = 0; t < board.length; t++) {
                         if (isValidMove(s, t)) moves.push({from: s, to: t});
                     }
@@ -320,7 +267,7 @@
                 drawBoard();
                 statusEl.textContent = "Your Turn (White)";
             } else {
-                statusEl.textContent = "Checkmate or Stalemate";
+                statusEl.textContent = "Game Over";
                 gameOver = true;
             }
         }
