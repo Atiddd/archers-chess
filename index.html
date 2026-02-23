@@ -1,86 +1,263 @@
-// --- Add this missing helper function ---
-function isPathClear(startSq, endSq, df, dr) {
-    let f = fileOf(startSq) + df;
-    let r = rankOf(startSq) + dr;
-    const ef = fileOf(endSq);
-    const er = rankOf(endSq);
-    while (f !== ef || r !== er) {
-        if (pieceAt(idx(f, r))) return false;
-        f += df;
-        r += dr;
-    }
-    return true;
-}
+const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const SQ = 60;
+        const FILES = 10;
+        const RANKS = 8;
+        const statusEl = document.getElementById('status');
 
-// --- Updated isValidMove Castling Section ---
-if (p.toUpperCase() === 'K') {
-    if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return true;
+        let board = new Array(FILES * RANKS).fill(null);
+        let selected = null;
+        let turn = 'w';
+        let gameOver = false;
 
-    // Castling
-    const isWhiteKing = isWhite(p);
-    if (isWhiteKing ? whiteKingMoved : blackKingMoved) return false;
-    if (dy !== 0 || Math.abs(dx) !== 2) return false;
+        // Castling flags
+        let whiteKingMoved = false;
+        let blackKingMoved = false;
+        let whiteRookLeftMoved = false;
+        let whiteRookRightMoved = false;
+        let blackRookLeftMoved = false;
+        let blackRookRightMoved = false;
 
-    // Rook is at file 1 (Left) or file 8 (Right)
-    const rookFile = dx > 0 ? 8 : 1; 
-    const rookSq = idx(rookFile, sr);
-    const rook = pieceAt(rookSq);
-    
-    if (!rook || rook.toUpperCase() !== 'R') return false;
-    
-    // Check if the specific rook has moved
-    if (isWhiteKing) {
-        if (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) return false;
-    } else {
-        if (dx > 0 ? blackRookRightMoved : blackRookLeftMoved) return false;
-    }
+        const pieceSymbols = {
+            'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹',
+            'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🏹'
+        };
 
-    // Path clear - check squares between King (file 5) and Rook (file 1 or 8)
-    const step = dx > 0 ? 1 : -1;
-    for (let i = sf + step; i !== rookFile; i += step) {
-        if (pieceAt(idx(i, sr))) return false;
-    }
-    return true;
-}
+        const fileLabels = ['–A','A','B','C','D','E','F','G','H','H+'];
 
-// --- Updated makeMove Castling & Flag Section ---
-function makeMove(startSq, endSq) {
-    let p = pieceAt(startSq);
-    board[endSq] = p;
-    board[startSq] = null;
+        const dirs = {
+            rook: [[0,1],[0,-1],[1,0],[-1,0]],
+            bishop: [[1,1],[1,-1],[-1,1],[-1,-1]],
+            queen: [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]],
+            king: [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]],
+            knight: [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]]
+        };
 
-    // Promotion
-    if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
-    if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
+        function init() {
+            board.fill(null);
+            // White Pieces (Rank 0 and 1)
+            board[idx(0,0)] = 'A'; board[idx(1,0)] = 'R'; board[idx(2,0)] = 'N';
+            board[idx(3,0)] = 'B'; board[idx(4,0)] = 'Q'; board[idx(5,0)] = 'K';
+            board[idx(6,0)] = 'B'; board[idx(7,0)] = 'N'; board[idx(8,0)] = 'R'; board[idx(9,0)] = 'A';
+            for(let f=0; f<FILES; f++) board[idx(f,1)] = 'P';
 
-    // Castling rook jump
-    if (p.toUpperCase() === 'K') {
-        const sf = fileOf(startSq), ef = fileOf(endSq);
-        if (Math.abs(ef - sf) === 2) {
-            // Rook starts at 1 or 8
-            const rookFromFile = ef > sf ? 8 : 1;
-            const rookToFile = ef > sf ? ef - 1 : ef + 1;
-            const r = rankOf(startSq);
-            board[idx(rookToFile, r)] = pieceAt(idx(rookFromFile, r));
-            board[idx(rookFromFile, r)] = null;
+            // Black Pieces (Rank 7 and 6)
+            for(let f=0; f<FILES; f++) board[idx(f,6)] = 'p';
+            board[idx(0,7)] = 'a'; board[idx(1,7)] = 'r'; board[idx(2,7)] = 'n';
+            board[idx(3,7)] = 'b'; board[idx(4,7)] = 'q'; board[idx(5,7)] = 'k';
+            board[idx(6,7)] = 'b'; board[idx(7,7)] = 'n'; board[idx(8,7)] = 'r'; board[idx(9,7)] = 'a';
+
+            selected = null;
+            turn = 'w';
+            gameOver = false;
+            whiteKingMoved = false; blackKingMoved = false;
+            whiteRookLeftMoved = false; whiteRookRightMoved = false;
+            blackRookLeftMoved = false; blackRookRightMoved = false;
+
+            statusEl.textContent = "Your Turn (White)";
+            drawBoard();
         }
-    }
 
-    // Update castling flags
-    if (p.toUpperCase() === 'K') {
-        if (isWhite(p)) whiteKingMoved = true;
-        else blackKingMoved = true;
-    }
-    if (p.toUpperCase() === 'R') {
-        const f = fileOf(startSq);
-        if (isWhite(p)) {
-            if (f === 1) whiteRookLeftMoved = true;
-            if (f === 8) whiteRookRightMoved = true;
-        } else {
-            if (f === 1) blackRookLeftMoved = true;
-            if (f === 8) blackRookRightMoved = true;
+        function idx(f, r) { return f * RANKS + r; }
+        function fileOf(sq) { return Math.floor(sq / RANKS); }
+        function rankOf(sq) { return sq % RANKS; }
+        function isOnBoard(f,r) { return f>=0 && f<FILES && r>=0 && r<RANKS; }
+        function pieceAt(sq) { return board[sq]; }
+        function isWhite(p) { return p && p === p.toUpperCase(); }
+        function sameSide(p1,p2) { return p1 && p2 && isWhite(p1) === isWhite(p2); }
+
+        function isPathClear(startSq, endSq, df, dr) {
+            let f = fileOf(startSq) + df;
+            let r = rankOf(startSq) + dr;
+            const ef = fileOf(endSq);
+            const er = rankOf(endSq);
+            while (f !== ef || r !== er) {
+                if (!isOnBoard(f, r) || pieceAt(idx(f, r))) return false;
+                f += df;
+                r += dr;
+            }
+            return true;
         }
-    }
 
-    turn = turn === 'w' ? 'b' : 'w';
-}
+        function drawBoard() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            for(let r=7; r>=0; r--) {
+                for(let f=0; f<FILES; f++) {
+                    let x = f * SQ;
+                    let y = (7 - r) * SQ;
+                    ctx.fillStyle = ((f + r) % 2 === 0) ? '#f0d9b5' : '#b58863';
+                    ctx.fillRect(x, y, SQ, SQ);
+                    ctx.font = '10px Arial';
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(fileLabels[f] + (r + 1), x + 4, y + SQ - 4);
+                    let p = pieceAt(idx(f,r));
+                    if (p) {
+                        ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
+                        ctx.font = 'bold 48px serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 4);
+                    }
+                    if (selected === idx(f,r)) {
+                        ctx.strokeStyle = '#ffeb3b';
+                        ctx.lineWidth = 5;
+                        ctx.strokeRect(x+4, y+4, SQ-8, SQ-8);
+                    }
+                }
+            }
+        }
+
+        function isValidMove(startSq, endSq) {
+            if (startSq === endSq) return false;
+            let p = pieceAt(startSq);
+            if (!p) return false;
+            let tp = pieceAt(endSq);
+            if (tp && sameSide(p, tp)) return false;
+
+            let sf = fileOf(startSq), sr = rankOf(startSq);
+            let ef = fileOf(endSq), er = rankOf(endSq);
+            let dx = ef - sf, dy = er - sr;
+
+            // Pawns
+            if (p.toUpperCase() === 'P') {
+                let dir = isWhite(p) ? 1 : -1;
+                if (dx === 0 && dy === dir && !tp) return true;
+                if (dx === 0 && dy === 2*dir && sr === (isWhite(p)?1:6) && !tp && !pieceAt(idx(sf,sr+dir))) return true;
+                if (Math.abs(dx)===1 && dy===dir && tp) return true;
+                return false;
+            }
+
+            // Knight
+            if (p.toUpperCase() === 'N') return dirs.knight.some(d => d[0]===dx && d[1]===dy);
+
+            // King & Castling
+            if (p.toUpperCase() === 'K') {
+                if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return true;
+                const isWhiteKing = isWhite(p);
+                if (isWhiteKing ? whiteKingMoved : blackKingMoved) return false;
+                if (dy !== 0 || Math.abs(dx) !== 2) return false;
+                const rookFile = dx > 0 ? 8 : 1;
+                const rookSq = idx(rookFile, sr);
+                const rook = pieceAt(rookSq);
+                if (!rook || rook.toUpperCase() !== 'R') return false;
+                if (isWhiteKing ? (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) : (dx > 0 ? blackRookRightMoved : blackRookLeftMoved)) return false;
+                const step = dx > 0 ? 1 : -1;
+                for (let i = sf + step; i !== rookFile; i += step) {
+                    if (pieceAt(idx(i, sr))) return false;
+                }
+                return true;
+            }
+
+            // Archer
+            if (p.toUpperCase() === 'A') {
+                for (let [odx, ody] of dirs.queen) {
+                    let f3 = sf + odx*3, r3 = sr + ody*3;
+                    if (!isOnBoard(f3,r3)) continue;
+                    // Straight lines blocked?
+                    if ((odx===0 || ody===0) && (!isPathClear(startSq, idx(f3,r3), odx, ody) && !(Math.abs(sf-f3)<=1 && Math.abs(sr-r3)<=1))) {
+                        // Special check: isPathClear doesn't check the target square itself, so we check path to f3,r3
+                        let blocked = false;
+                        for(let step=1; step<3; step++) if(pieceAt(idx(sf+odx*step, sr+ody*step))) blocked = true;
+                        if(blocked) continue;
+                    }
+                    const offsets = [[-odx - ody, -ody + odx], [-odx + ody, -ody - odx]];
+                    for (let [ox, oy] of offsets) {
+                        if (f3 + ox === ef && r3 + oy === er) return true;
+                    }
+                }
+                return false;
+            }
+
+            // Sliding pieces
+            let slides = p.toUpperCase() === 'R' ? dirs.rook :
+                         p.toUpperCase() === 'B' ? dirs.bishop :
+                         p.toUpperCase() === 'Q' ? dirs.queen : [];
+            for (let [ddx, ddy] of slides) {
+                if (ddx * dy === ddy * dx && Math.sign(ddx)===Math.sign(dx) && Math.sign(ddy)===Math.sign(dy)) {
+                    return isPathClear(startSq, endSq, Math.sign(dx), Math.sign(dy));
+                }
+            }
+            return false;
+        }
+
+        function makeMove(startSq, endSq) {
+            let p = pieceAt(startSq);
+            board[endSq] = p;
+            board[startSq] = null;
+
+            if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
+            if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
+
+            if (p.toUpperCase() === 'K') {
+                const sf = fileOf(startSq), ef = fileOf(endSq);
+                if (Math.abs(ef - sf) === 2) {
+                    const rookFromFile = ef > sf ? 8 : 1;
+                    const rookToFile = ef > sf ? ef-1 : ef+1;
+                    const r = rankOf(startSq);
+                    board[idx(rookToFile, r)] = pieceAt(idx(rookFromFile, r));
+                    board[idx(rookFromFile, r)] = null;
+                }
+                if (isWhite(p)) whiteKingMoved = true; else blackKingMoved = true;
+            }
+
+            if (p.toUpperCase() === 'R') {
+                const f = fileOf(startSq);
+                if (isWhite(p)) {
+                    if (f === 1) whiteRookLeftMoved = true;
+                    if (f === 8) whiteRookRightMoved = true;
+                } else {
+                    if (f === 1) blackRookLeftMoved = true;
+                    if (f === 8) blackRookRightMoved = true;
+                }
+            }
+            turn = turn === 'w' ? 'b' : 'w';
+        }
+
+        canvas.addEventListener('click', e => {
+            if (gameOver || turn === 'b') return;
+            const rect = canvas.getBoundingClientRect();
+            const f = Math.floor((e.clientX - rect.left) / SQ);
+            const r = 7 - Math.floor((e.clientY - rect.top) / SQ);
+            if (!isOnBoard(f,r)) return;
+            const sq = idx(f,r);
+
+            if (selected === null) {
+                if (pieceAt(sq) && isWhite(pieceAt(sq))) { selected = sq; drawBoard(); }
+            } else {
+                if (isValidMove(selected, sq)) {
+                    makeMove(selected, sq);
+                    drawBoard();
+                    if (turn === 'b') {
+                        statusEl.textContent = "AI Thinking...";
+                        setTimeout(aiMove, 500);
+                    }
+                } else {
+                    selected = null;
+                    drawBoard();
+                }
+            }
+        });
+
+        function aiMove() {
+            let moves = [];
+            for (let sq = 0; sq < board.length; sq++) {
+                const p = pieceAt(sq);
+                if (p && !isWhite(p)) {
+                    for (let t = 0; t < board.length; t++) {
+                        if (isValidMove(sq, t)) moves.push({from: sq, to: t});
+                    }
+                }
+            }
+            if (moves.length > 0) {
+                const m = moves[Math.floor(Math.random() * moves.length)];
+                makeMove(m.from, m.to);
+                drawBoard();
+                statusEl.textContent = "Your Turn (White)";
+            } else {
+                statusEl.textContent = "Game Over";
+            }
+        }
+
+        init();
