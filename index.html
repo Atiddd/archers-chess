@@ -3,49 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess vs AI - v1.4 (Castling Fixed)</title>
+    <title>Archers Chess v1.0 (Official Ruleset)</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; margin: 10px; }
-        canvas { border: 4px solid #8b4513; cursor: pointer; background: #deb887; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
-        h1 { color: #8b0000; margin: 10px; }
-        #status { font-size: 22px; font-weight: bold; margin: 15px; color: #444; }
-        select, button { font-size: 18px; padding: 8px 16px; margin: 5px; border-radius: 6px; cursor: pointer; }
-        button { background: #8b4513; color: white; border: none; }
-        button:hover { background: #a0522d; }
-        details { margin: 20px auto; max-width: 900px; text-align: left; border: 1px solid #ccc; padding: 10px; border-radius: 8px; background: #fff8e7; }
-        summary { font-size: 20px; cursor: pointer; color: #8b0000; font-weight: bold; }
-        a { color: #8b0000; text-decoration: underline; }
+        :root {
+            --primary: #5d4037;
+            --accent: #8b0000;
+            --bg: #edeadf;
+            --tile-light: #f0d9b5;
+            --tile-dark: #b58863;
+            --panel-bg: #fffcf5;
+        }
+        body { font-family: 'Segoe UI', serif; text-align: center; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; }
+        h1 { color: var(--primary); margin: 0 0 5px 0; font-size: 2.2em; text-transform: uppercase; letter-spacing: 2px; }
+        .author-tag { font-style: italic; color: #795548; margin-bottom: 15px; font-size: 0.9em; }
+        
+        /* Layout for Board and Captures */
+        .game-container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
+        
+        canvas { border: 8px solid var(--primary); cursor: pointer; background: #deb887; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border-radius: 4px; }
+        
+        /* Captures Panel */
+        .side-panel { width: 180px; background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; text-align: left; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); }
+        .side-panel h3 { margin-top: 0; font-size: 1.1em; border-bottom: 2px solid var(--primary); padding-bottom: 5px; color: var(--primary); }
+        .capture-group { height: 160px; overflow-y: auto; margin-bottom: 15px; font-size: 24px; line-height: 1.2; }
+        .score { font-weight: bold; color: var(--accent); font-size: 0.9em; }
+
+        #status { font-size: 20px; font-weight: bold; margin: 10px; color: var(--accent); height: 30px; }
+        .controls { margin-bottom: 15px; }
+        button { font-size: 15px; padding: 10px 20px; border-radius: 4px; cursor: pointer; border: none; background: var(--primary); color: white; font-weight: bold; transition: 0.3s; }
+        button:hover { background: var(--accent); }
+
+        /* Rules Dropdown */
+        .manual-container { max-width: 820px; margin: 30px auto; text-align: left; }
+        details { background: #fff; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; }
+        summary { padding: 12px 20px; font-size: 18px; font-weight: bold; cursor: pointer; background: var(--primary); color: white; display: flex; justify-content: space-between; align-items: center; }
+        .manual-content { padding: 20px; line-height: 1.5; font-size: 0.95em; }
+        h4 { color: var(--accent); margin: 15px 0 5px 0; border-bottom: 1px solid #ddd; }
+        .notation-key { background: #fbe9e7; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-family: monospace; }
     </style>
 </head>
 <body>
-    <h1>🏹 Archers Chess v1.4 - Play White vs AI</h1>
-    <p>Full rules + Archer + castling (fixed) + tile labels. Choose AI level:</p>
-    <div>
-        <label for="aiLevel">AI Difficulty: </label>
-        <select id="aiLevel">
-            <option value="easy">Easy</option>
-            <option value="normal" selected>Normal</option>
-            <option value="hard">Hard</option>
-        </select>
-        <button onclick="init()">New Game</button>
-    </div>
-    <div id="status">Your Turn (White)</div>
-    <canvas id="board" width="600" height="480"></canvas>
-    <p>Files: –A A B C D E F G H H+</p>
 
-    <details open>
-        <summary>📜 Game Rules & Archer Movement (click to collapse)</summary>
-        <p>Archers Chess is played on a 10×8 board with standard chess rules + 2 Archers per side.</p>
-        <p><strong>The Archer</strong> moves in two mandatory phases:</p>
-        <ul>
-            <li><strong>Outward</strong>: exactly 3 squares straight or diagonal (straight: no jump; diagonal: can jump).</li>
-            <li><strong>Return</strong>: exactly 1 square back at 45° diagonal (choose left or right).</li>
-            <li>Capture only on the final square.</li>
-        </ul>
-        <p>Castling works as in standard chess (king + rook, path clear, not in check).</p>
-        <p>Tile labels match official notation: files –A to H+ (left to right from White’s view), ranks 1–8.</p>
-        <p>Full official rules & declaration (PDF): <a href="Archers_Chess_Master_Rules_Appendices_Declaration_v1.0.pdf" target="_blank">Download PDF</a></p>
-    </details>
+    <h1>🏹 Archers Chess</h1>
+    <div class="author-tag">Official Rules v1.0 • Created by John Patrick Read</div>
+
+    <div class="controls">
+        <button onclick="init()">Reset Field of Play</button>
+    </div>
+
+    <div id="status">Your Turn (White)</div>
+
+    <div class="game-container">
+        <div class="side-panel">
+            <h3>Captured by AI</h3>
+            <div id="white-captures" class="capture-group"></div>
+            <div id="white-score" class="score">Advantage: +0</div>
+        </div>
+
+        <canvas id="board" width="600" height="480"></canvas>
+
+        <div class="side-panel">
+            <h3>Your Trophies</h3>
+            <div id="black-captures" class="capture-group"></div>
+            <div id="black-score" class="score">Advantage: +0</div>
+        </div>
+    </div>
+
+    <div class="manual-container">
+        <details>
+            <summary>📜 ARCHERS CHESS OFFICIAL RULES (v1.0)</summary>
+            <div class="manual-content">
+                <p>Based on the official declaration by <strong>John Patrick Read</strong> (3 Jan 2026).</p>
+                
+                <h4>1. The Archer Piece ($A$)</h4>
+                <p>The Archer is a ranged tactical piece valued at approx. <strong>4 points</strong>. It moves in two mandatory phases:</p>
+                <ul>
+                    <li><strong>Outward Phase ($O$):</strong> Exactly three squares in a straight or diagonal direction[cite: 27].</li>
+                    <li><strong>Return Phase ($F$):</strong> One square back toward origin at a 45° diagonal offset[cite: 31, 32].</li>
+                </ul>
+                <p><strong>Blocking:</strong> Straight moves cannot jump over pieces; diagonal moves can[cite: 28, 29, 103, 112]. Captures only occur on the final square[cite: 25, 34].</p>
+
+                <h4>2. The Board and Setup</h4>
+                <p>Played on a <strong>10 × 8 board</strong>[cite: 19]. Files: <span class="notation-key">–A, A, B, C, D, E, F, G, H, H+</span>[cite: 19]. Setup includes two Archers per side and two additional pawns[cite: 22].</p>
+                
+                <h4>3. Standard Rules</h4>
+                <p>All standard chess rules apply, including castling, promotion, and en passant[cite: 17, 40].</p>
+            </div>
+        </details>
+    </div>
 
     <script>
         const canvas = document.getElementById('board');
@@ -55,54 +100,22 @@
         const RANKS = 8;
         const statusEl = document.getElementById('status');
 
-        let board = new Array(FILES * RANKS).fill(null);
-        let selected = null;
-        let turn = 'w';
-        let gameOver = false;
-
-        let whiteKingMoved = false;
-        let blackKingMoved = false;
-        let whiteRookLeftMoved = false;
-        let whiteRookRightMoved = false;
-        let blackRookLeftMoved = false;
-        let blackRookRightMoved = false;
-
+        const pieceValues = { 'P':1, 'N':3, 'B':3, 'R':5, 'Q':9, 'A':4, 'K':0 };
         const pieceSymbols = {
             'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹',
             'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🏹'
         };
-
         const fileLabels = ['–A','A','B','C','D','E','F','G','H','H+'];
 
-        const dirs = {
-            rook: [[0,1],[0,-1],[1,0],[-1,0]],
-            bishop: [[1,1],[1,-1],[-1,1],[-1,-1]],
-            queen: [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]],
-            king: [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]],
-            knight: [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]]
-        };
+        let board = new Array(FILES * RANKS).fill(null);
+        let selected = null;
+        let turn = 'w';
+        let gameOver = false;
+        let captures = { w: [], b: [] };
 
-        function init() {
-            board.fill(null);
-            const setup = ['A','R','N','B','Q','K','B','N','R','A'];
-            for(let f=0; f<FILES; f++) {
-                board[idx(f,0)] = setup[f];
-                board[idx(f,1)] = 'P';
-                board[idx(f,6)] = 'p';
-                board[idx(f,7)] = setup[f].toLowerCase();
-            }
-            selected = null;
-            turn = 'w';
-            gameOver = false;
-            whiteKingMoved = false;
-            blackKingMoved = false;
-            whiteRookLeftMoved = false;
-            whiteRookRightMoved = false;
-            blackRookLeftMoved = false;
-            blackRookRightMoved = false;
-            statusEl.textContent = "Your Turn (White)";
-            drawBoard();
-        }
+        let whiteKingMoved = false, blackKingMoved = false;
+        let whiteRookLeftMoved = false, whiteRookRightMoved = false;
+        let blackRookLeftMoved = false, blackRookRightMoved = false;
 
         function idx(f, r) { return f * RANKS + r; }
         function fileOf(sq) { return Math.floor(sq / RANKS); }
@@ -110,173 +123,137 @@
         function isOnBoard(f,r) { return f>=0 && f<FILES && r>=0 && r<RANKS; }
         function pieceAt(sq) { return board[sq]; }
         function isWhite(p) { return p && p === p.toUpperCase(); }
-        function sameSide(p1,p2) { return p1 && p2 && isWhite(p1) === isWhite(p2); }
 
-        function drawBoard() {
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            for(let r=7; r>=0; r--) {
-                for(let f=0; f<FILES; f++) {
-                    let x = f * SQ, y = (7 - r) * SQ;
-                    ctx.fillStyle = ((f + r) % 2 === 0) ? '#f0d9b5' : '#b58863';
-                    ctx.fillRect(x, y, SQ, SQ);
-
-                    ctx.font = '10px Arial';
-                    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                    ctx.fillText(fileLabels[f] + (r + 1), x + 2, y + SQ - 2);
-
-                    let p = pieceAt(idx(f,r));
-                    if (p) {
-                        ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
-                        ctx.font = '44px serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 2);
-                    }
-
-                    if (selected === idx(f,r)) {
-                        ctx.strokeStyle = '#ffeb3b';
-                        ctx.lineWidth = 4;
-                        ctx.strokeRect(x+2, y+2, SQ-4, SQ-4);
-                    }
-                }
+        function init() {
+            board.fill(null);
+            captures = { w: [], b: [] };
+            const setup = ['A','R','N','B','Q','K','B','N','R','A'];
+            for(let f=0; f<FILES; f++) {
+                board[idx(f,0)] = setup[f];
+                board[idx(f,1)] = 'P';
+                board[idx(f,6)] = 'p';
+                board[idx(f,7)] = setup[f].toLowerCase();
             }
+            selected = null; turn = 'w'; gameOver = false;
+            whiteKingMoved = whiteRookLeftMoved = whiteRookRightMoved = false;
+            blackKingMoved = blackRookLeftMoved = blackRookRightMoved = false;
+            statusEl.textContent = "Your Turn (White)";
+            updateCapturesUI();
+            drawBoard();
         }
 
         function isPathClear(startSq, endSq, df, dr) {
-            let f = fileOf(startSq) + df;
-            let r = rankOf(startSq) + dr;
-            const ef = fileOf(endSq);
-            const er = rankOf(endSq);
+            let f = fileOf(startSq) + df, r = rankOf(startSq) + dr;
+            const ef = fileOf(endSq), er = rankOf(endSq);
             while (f !== ef || r !== er) {
                 if (!isOnBoard(f,r) || pieceAt(idx(f, r))) return false;
-                f += df;
-                r += dr;
+                f += df; r += dr;
             }
             return true;
         }
 
         function isValidMove(startSq, endSq) {
             if (startSq === endSq) return false;
-            let p = pieceAt(startSq);
-            if (!p) return false;
-            let tp = pieceAt(endSq);
-            if (tp && sameSide(p, tp)) return false;
+            let p = pieceAt(startSq), tp = pieceAt(endSq);
+            if (!p || (tp && isWhite(p) === isWhite(tp))) return false;
 
             let sf = fileOf(startSq), sr = rankOf(startSq);
             let ef = fileOf(endSq), er = rankOf(endSq);
             let dx = ef - sf, dy = er - sr;
 
-            if (p.toUpperCase() === 'P') {
+            // Simple Piece Logic
+            const type = p.toUpperCase();
+            if (type === 'P') {
                 let dir = isWhite(p) ? 1 : -1;
                 if (dx === 0 && dy === dir && !tp) return true;
                 if (dx === 0 && dy === 2*dir && sr === (isWhite(p)?1:6) && !tp && !pieceAt(idx(sf,sr+dir))) return true;
                 if (Math.abs(dx)===1 && dy===dir && tp) return true;
                 return false;
             }
-
-            if (p.toUpperCase() === 'N') return dirs.knight.some(d => d[0]===dx && d[1]===dy);
-
-            if (p.toUpperCase() === 'K') {
+            if (type === 'N') return [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]].some(d => d[0]===dx && d[1]===dy);
+            if (type === 'K') {
                 if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return true;
-
-                // Castling
-                if (dy !== 0 || Math.abs(dx) !== 2) return false;
-                if (isWhite(p) ? whiteKingMoved : blackKingMoved) return false;
-
-                const rookFile = dx > 0 ? 8 : 1;  // H = 8, A = 1
-                const rook = pieceAt(idx(rookFile, sr));
-                if (!rook || rook.toUpperCase() !== 'R') return false;
-                if (isWhite(p) ? (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) : (dx > 0 ? blackRookRightMoved : blackRookLeftMoved)) return false;
-
-                const step = dx > 0 ? 1 : -1;
-                for (let i = sf + step; i !== rookFile; i += step) {
-                    if (pieceAt(idx(i, sr))) return false;
+                if (dy === 0 && Math.abs(dx) === 2) { // Castling
+                    if (isWhite(p) ? whiteKingMoved : blackKingMoved) return false;
+                    const rFile = dx > 0 ? 8 : 1;
+                    const rook = pieceAt(idx(rFile, sr));
+                    if (!rook || rook.toUpperCase() !== 'R') return false;
+                    const step = dx > 0 ? 1 : -1;
+                    for (let i = sf + step; i !== rFile; i += step) if (pieceAt(idx(i, sr))) return false;
+                    return true;
                 }
-                return true;
+                return false;
             }
-
-            if (p.toUpperCase() === 'A') {
-                for (let [odx, ody] of dirs.queen) {
+            if (type === 'A') {
+                const queenDirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
+                for (let [odx, ody] of queenDirs) {
                     let f3 = sf + odx*3, r3 = sr + ody*3;
                     if (!isOnBoard(f3,r3)) continue;
-                    if ((odx===0 || ody===0) && !isPathClear(startSq, idx(f3, r3), odx, ody)) continue;
-                    const offsets = [[-odx-ody, -ody+odx], [-odx+ody, -ody-odx]];
-                    for (let [ox, oy] of offsets) {
-                        if (f3+Math.sign(ox) === ef && r3+Math.sign(oy) === er) return true;
-                    }
+                    if ((odx===0 || ody===0) && (pieceAt(idx(sf+odx, sr+ody)) || pieceAt(idx(sf+odx*2, sr+ody*2)) || pieceAt(idx(f3, r3)))) continue;
+                    const backOffsets = [[-odx-ody, -ody+odx], [-odx+ody, -ody-odx]];
+                    for (let [ox, oy] of backOffsets) if (f3 + Math.sign(ox) === ef && r3 + Math.sign(oy) === er) return true;
                 }
                 return false;
             }
 
-            let slides = p.toUpperCase() === 'R' ? dirs.rook : p.toUpperCase() === 'B' ? dirs.bishop : p.toUpperCase() === 'Q' ? dirs.queen : [];
+            const slides = type === 'R' ? [[0,1],[0,-1],[1,0],[-1,0]] : type === 'B' ? [[1,1],[1,-1],[-1,1],[-1,-1]] : type === 'Q' ? [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]] : [];
             for (let [ddx, ddy] of slides) {
-                if (ddx * dy === ddy * dx && Math.sign(ddx)===Math.sign(dx) && Math.sign(ddy)===Math.sign(dy)) {
-                    return isPathClear(startSq, endSq, Math.sign(dx), Math.sign(dy));
-                }
+                if (ddx * dy === ddy * dx && Math.sign(ddx)===Math.sign(dx) && Math.sign(ddy)===Math.sign(dy)) return isPathClear(startSq, endSq, Math.sign(dx), Math.sign(dy));
             }
             return false;
         }
 
         function makeMove(startSq, endSq) {
-            let p = pieceAt(startSq);
-            let sf = fileOf(startSq), ef = fileOf(endSq), r = rankOf(startSq);
-
-            // Handle Castling Rook Jump
-            if (p.toUpperCase() === 'K' && Math.abs(ef - sf) === 2) {
-                const rookFromFile = ef > sf ? 8 : 1;
-                const rookToFile = ef > sf ? ef - 1 : ef + 1;
-                board[idx(rookToFile, r)] = board[idx(rookFromFile, r)];
-                board[idx(rookFromFile, r)] = null;
+            let p = pieceAt(startSq), tp = pieceAt(endSq);
+            if (tp) {
+                if (isWhite(tp)) captures.w.push(tp); else captures.b.push(tp);
+                updateCapturesUI();
             }
 
-            board[endSq] = p;
-            board[startSq] = null;
+            let sf = fileOf(startSq), ef = fileOf(endSq), r = rankOf(startSq);
+            if (p.toUpperCase() === 'K' && Math.abs(ef - sf) === 2) {
+                const rFrom = ef > sf ? 8 : 1, rTo = ef > sf ? ef - 1 : ef + 1;
+                board[idx(rTo, r)] = board[idx(rFrom, r)]; board[idx(rFrom, r)] = null;
+            }
 
-            // Promotion
+            board[endSq] = p; board[startSq] = null;
             if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
             if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
-
-            // Update castling flags
-            if (p === 'K') whiteKingMoved = true;
-            if (p === 'k') blackKingMoved = true;
-            if (p === 'R') {
-                if (sf === 1) whiteRookLeftMoved = true;
-                if (sf === 8) whiteRookRightMoved = true;
-            }
-            if (p === 'r') {
-                if (sf === 1) blackRookLeftMoved = true;
-                if (sf === 8) blackRookRightMoved = true;
-            }
+            
+            if (p === 'K') whiteKingMoved = true; if (p === 'k') blackKingMoved = true;
+            if (p === 'R') { if(sf===1) whiteRookLeftMoved = true; if(sf===8) whiteRookRightMoved = true; }
+            if (p === 'r') { if(sf===1) blackRookLeftMoved = true; if(sf===8) blackRookRightMoved = true; }
 
             turn = turn === 'w' ? 'b' : 'w';
+        }
+
+        function updateCapturesUI() {
+            const getScore = list => list.reduce((s, p) => s + pieceValues[p.toUpperCase()], 0);
+            const wScore = getScore(captures.w), bScore = getScore(captures.b);
+            
+            document.getElementById('white-captures').innerHTML = captures.w.map(p => `<span>${pieceSymbols[p]}</span>`).join(' ');
+            document.getElementById('black-captures').innerHTML = captures.b.map(p => `<span>${pieceSymbols[p]}</span>`).join(' ');
+            
+            document.getElementById('white-score').textContent = wScore >= bScore ? `Advantage: +${wScore - bScore}` : `Advantage: 0`;
+            document.getElementById('black-score').textContent = bScore >= wScore ? `Advantage: +${bScore - wScore}` : `Advantage: 0`;
         }
 
         function drawBoard() {
             ctx.clearRect(0,0,canvas.width,canvas.height);
             for(let r=7; r>=0; r--) {
                 for(let f=0; f<FILES; f++) {
-                    let x = f * SQ, y = (7 - r) * SQ;
-                    ctx.fillStyle = ((f + r) % 2 === 0) ? '#f0d9b5' : '#b58863';
+                    let x = f * SQ, y = (7 - r) * SQ, isLight = (f + r) % 2 === 0;
+                    ctx.fillStyle = isLight ? '#f0d9b5' : '#b58863';
                     ctx.fillRect(x, y, SQ, SQ);
-
-                    ctx.font = '10px Arial';
-                    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                    ctx.fillText(fileLabels[f] + (r + 1), x + 2, y + SQ - 2);
-
+                    ctx.font = '10px Arial'; ctx.textAlign = 'left'; ctx.fillStyle = isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)';
+                    ctx.fillText(fileLabels[f] + (r + 1), x + 4, y + 10);
                     let p = pieceAt(idx(f,r));
                     if (p) {
                         ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
-                        ctx.font = '44px serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 2);
+                        ctx.font = '46px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/SQ + 30);
                     }
-
-                    if (selected === idx(f,r)) {
-                        ctx.strokeStyle = '#ffeb3b';
-                        ctx.lineWidth = 4;
-                        ctx.strokeRect(x+2, y+2, SQ-4, SQ-4);
-                    }
+                    if (selected === idx(f,r)) { ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 4; ctx.strokeRect(x+2, y+2, SQ-4, SQ-4); }
                 }
             }
         }
@@ -284,45 +261,25 @@
         canvas.addEventListener('click', e => {
             if (gameOver || turn === 'b') return;
             const rect = canvas.getBoundingClientRect();
-            const f = Math.floor((e.clientX - rect.left) / SQ);
-            const r = 7 - Math.floor((e.clientY - rect.top) / SQ);
+            const f = Math.floor((e.clientX - rect.left) / SQ), r = 7 - Math.floor((e.clientY - rect.top) / SQ);
             const sq = idx(f,r);
-
             if (selected === null) {
-                if (pieceAt(sq) && isWhite(pieceAt(sq))) {
-                    selected = sq;
-                    drawBoard();
-                }
+                if (pieceAt(sq) && isWhite(pieceAt(sq))) { selected = sq; drawBoard(); }
             } else {
-                if (isValidMove(selected, sq)) {
-                    makeMove(selected, sq);
-                    drawBoard();
-                    statusEl.textContent = "AI Thinking...";
-                    setTimeout(aiMove, 500);
-                }
-                selected = null;
-                drawBoard();
+                if (isValidMove(selected, sq)) { makeMove(selected, sq); drawBoard(); if (!gameOver) setTimeout(aiMove, 600); }
+                selected = null; drawBoard();
             }
         });
 
         function aiMove() {
             let moves = [];
-            for (let s = 0; s < board.length; s++) {
-                if (board[s] && !isWhite(board[s])) {
-                    for (let t = 0; t < board.length; t++) {
-                        if (isValidMove(s, t)) moves.push({from: s, to: t});
-                    }
-                }
+            for (let s = 0; s < board.length; s++) if (board[s] && !isWhite(board[s])) {
+                for (let t = 0; t < board.length; t++) if (isValidMove(s, t)) moves.push({from: s, to: t});
             }
             if (moves.length > 0) {
                 const m = moves[Math.floor(Math.random() * moves.length)];
-                makeMove(m.from, m.to);
-                drawBoard();
-                statusEl.textContent = "Your Turn (White)";
-            } else {
-                statusEl.textContent = "Checkmate or Stalemate";
-                gameOver = true;
-            }
+                makeMove(m.from, m.to); drawBoard(); statusEl.textContent = "Your Turn (White)";
+            } else { statusEl.textContent = "Game Over"; gameOver = true; }
         }
 
         init();
