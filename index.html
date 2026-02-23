@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess vs AI - v1.2 (Castling Added)</title>
+    <title>Archers Chess vs AI - v1.2 (Tile Labels Added)</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; margin: 10px; }
         canvas { border: 4px solid #8b4513; cursor: pointer; background: #deb887; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
@@ -16,7 +16,7 @@
 </head>
 <body>
     <h1>🏹 Archers Chess v1.2 - Play White vs AI</h1>
-    <p>Full rules + Archer + castling added. Choose AI level:</p>
+    <p>Full rules + Archer + castling. Tile labels added. Choose AI level:</p>
     <div>
         <label>AI Difficulty: </label>
         <select id="aiLevel">
@@ -43,11 +43,11 @@
         let turn = 'w';
         let gameOver = false;
 
-        // Castling flags
+        // Castling flags (from previous update)
         let whiteKingMoved = false;
         let blackKingMoved = false;
-        let whiteRookLeftMoved = false;   // –A1 rook
-        let whiteRookRightMoved = false;  // H+1 rook
+        let whiteRookLeftMoved = false;
+        let whiteRookRightMoved = false;
         let blackRookLeftMoved = false;
         let blackRookRightMoved = false;
 
@@ -55,6 +55,8 @@
             'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹',
             'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🏹'
         };
+
+        const fileLabels = ['–A','A','B','C','D','E','F','G','H','H+'];
 
         const dirs = {
             rook: [[0,1],[0,-1],[1,0],[-1,0]],
@@ -66,12 +68,10 @@
 
         function init() {
             board.fill(null);
-            // White back rank
             board[0*RANKS+0] = 'A'; board[1*RANKS+0] = 'R'; board[2*RANKS+0] = 'N';
             board[3*RANKS+0] = 'B'; board[4*RANKS+0] = 'Q'; board[5*RANKS+0] = 'K';
             board[6*RANKS+0] = 'B'; board[7*RANKS+0] = 'N'; board[8*RANKS+0] = 'R'; board[9*RANKS+0] = 'A';
             for(let f=0; f<FILES; f++) board[f*RANKS+1] = 'P';
-            // Black
             for(let f=0; f<FILES; f++) board[f*RANKS+6] = 'p';
             board[0*RANKS+7] = 'a'; board[1*RANKS+7] = 'r'; board[2*RANKS+7] = 'n';
             board[3*RANKS+7] = 'b'; board[4*RANKS+7] = 'q'; board[5*RANKS+7] = 'k';
@@ -80,7 +80,6 @@
             selected = null;
             turn = 'w';
             gameOver = false;
-            // Reset castling flags
             whiteKingMoved = false;
             blackKingMoved = false;
             whiteRookLeftMoved = false;
@@ -102,12 +101,23 @@
 
         function drawBoard() {
             ctx.clearRect(0,0,canvas.width,canvas.height);
+
             for(let r=7; r>=0; r--) {
                 for(let f=0; f<FILES; f++) {
                     let x = f * SQ;
                     let y = (7 - r) * SQ;
+
+                    // Draw square color
                     ctx.fillStyle = ((f + r) % 2 === 0) ? '#f0d9b5' : '#b58863';
                     ctx.fillRect(x, y, SQ, SQ);
+
+                    // Draw tile label (file + rank, bottom-left corner)
+                    ctx.font = '12px Arial';
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(fileLabels[f] + (r+1), x + 4, y + SQ - 4);
+
                     let p = pieceAt(idx(f,r));
                     if (p) {
                         ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
@@ -116,6 +126,7 @@
                         ctx.textBaseline = 'middle';
                         ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 4);
                     }
+
                     if (selected === idx(f,r)) {
                         ctx.strokeStyle = '#ffeb3b';
                         ctx.lineWidth = 5;
@@ -145,7 +156,6 @@
             let ef = fileOf(endSq), er = rankOf(endSq);
             let dx = ef - sf, dy = er - sr;
 
-            // Pawn
             if (p.toUpperCase() === 'P') {
                 let dir = isWhite(p) ? 1 : -1;
                 if (dx === 0 && dy === dir && !tp) return true;
@@ -154,10 +164,8 @@
                 return false;
             }
 
-            // Knight
             if (p.toUpperCase() === 'N') return dirs.knight.some(d => d[0]===dx && d[1]===dy);
 
-            // King (normal + castling)
             if (p.toUpperCase() === 'K') {
                 // Normal king move
                 if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return true;
@@ -169,12 +177,11 @@
 
                 // Kingside (right)
                 if (dx > 0) {
-                    const rookFile = FILES - 1; // H+
+                    const rookFile = FILES - 1;
                     const rookSq = idx(rookFile, sr);
                     const rook = pieceAt(rookSq);
                     if (!rook || rook.toUpperCase() !== 'R') return false;
                     if (isWhiteKing ? whiteRookRightMoved : blackRookRightMoved) return false;
-                    // Path clear (between king and rook)
                     for (let i = sf + 1; i < rookFile; i++) {
                         if (pieceAt(idx(i, sr))) return false;
                     }
@@ -183,7 +190,7 @@
 
                 // Queenside (left)
                 if (dx < 0) {
-                    const rookFile = 0; // –A
+                    const rookFile = 0;
                     const rookSq = idx(rookFile, sr);
                     const rook = pieceAt(rookSq);
                     if (!rook || rook.toUpperCase() !== 'R') return false;
@@ -196,7 +203,6 @@
                 return false;
             }
 
-            // Archer
             if (p.toUpperCase() === 'A') {
                 const outDirs = dirs.queen;
                 for (let [odx, ody] of outDirs) {
@@ -219,7 +225,6 @@
                 return false;
             }
 
-            // Sliding pieces
             let slides = p.toUpperCase() === 'R' ? dirs.rook :
                          p.toUpperCase() === 'B' ? dirs.bishop :
                          p.toUpperCase() === 'Q' ? dirs.queen : [];
@@ -240,10 +245,10 @@
             if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
             if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
 
-            // Castling move rook
+            // Castling rook move
             if (p.toUpperCase() === 'K') {
                 const sf = fileOf(startSq), ef = fileOf(endSq);
-                if (Math.abs(ef - sf) === 2) { // Castling happened
+                if (Math.abs(ef - sf) === 2) {
                     const rookFromFile = ef > sf ? FILES-1 : 0;
                     const rookToFile = ef > sf ? ef-1 : ef+1;
                     const r = rankOf(startSq);
