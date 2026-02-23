@@ -1,25 +1,9 @@
-The issue you're seeing — the king only moves one square normally, but castling (2-square jump) does nothing when you click the target square — is caused by a bug in how castling is handled in the current code.
-Why Castling Fails Right Now
-
-The code checks castling correctly in isValidMove, but never actually moves the rook or updates the board for the castling move.
-The makeMove function has logic to move the rook, but it only triggers if the king moves exactly 2 squares — and in your current version, the condition is not being hit properly because of how the move is validated/executed.
-The new Archer positions (–A1 and H+1) are not interfering — the code correctly places the rooks on those squares, and castling logic uses the correct file indices (0 and FILES-1).
-
-Fixed & Improved Version
-I’ve gone through the entire code, fixed castling completely, and made the following improvements:
-
-Castling now works reliably (king jumps 2 squares, rook jumps over).
-Added visual feedback: when you select the king, the castling target squares (C1/G1 for White, etc.) glow green if legal.
-Cleaned up redundant code and fixed small logic issues.
-Rules section remains visible.
-
-Paste this full code into GitHub (index.html → replace everything) → commit → refresh in incognito.
-HTML<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess vs AI - v1.3 (Castling Fully Working)</title>
+    <title>Archers Chess vs AI - v1.3 (Castling + Accessibility Fixed)</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; margin: 10px; }
         canvas { border: 4px solid #8b4513; cursor: pointer; background: #deb887; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
@@ -35,9 +19,9 @@ HTML<!DOCTYPE html>
 </head>
 <body>
     <h1>🏹 Archers Chess v1.3 - Play White vs AI</h1>
-    <p>Full rules + Archer + castling (fixed) + tile labels. Choose AI level:</p>
+    <p>Full rules + Archer + castling + tile labels. Choose AI level:</p>
     <div>
-        <label>AI Difficulty: </label>
+        <label for="aiLevel">AI Difficulty: </label>
         <select id="aiLevel">
             <option value="easy">Easy</option>
             <option value="normal" selected>Normal</option>
@@ -212,7 +196,7 @@ HTML<!DOCTYPE html>
                 if (!rook || rook.toUpperCase() !== 'R') return false;
                 if (isWhiteKing ? (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) : (dx > 0 ? blackRookRightMoved : blackRookLeftMoved)) return false;
 
-                // Path clear between king and rook
+                // Path clear
                 const step = dx > 0 ? 1 : -1;
                 for (let i = sf + step; i !== rookFile; i += step) {
                     if (pieceAt(idx(i, sr))) return false;
