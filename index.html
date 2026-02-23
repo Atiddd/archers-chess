@@ -1,21 +1,3 @@
-The game froze after your first move because the AI's turn is stuck — likely in an infinite loop, unhandled error, or the aiMove() function isn't completing/executing properly. Since no red errors show in the console (only an unrelated accessibility warning), it's probably a silent failure (e.g., exception swallowed, infinite recursion in move generation, or setTimeout not firing correctly).
-Common Causes in JS Canvas Chess Games (from similar projects)
-
-Move generation (getAllLegalMoves or equivalent) loops forever or throws on edge cases (e.g., castling, pinned pieces, Archer's complex path).
-turn variable gets stuck or aiMove doesn't update the board/turn.
-drawBoard() is called but canvas state is corrupted.
-setTimeout(aiMove, 500) fires but the function crashes silently.
-
-Fixed & Improved Code
-This version:
-
-Adds robust error handling in aiMove and move logic (logs to console so you can see issues).
-Simplifies and fixes turn switching.
-Adds castling with clear path checks (king jumps 2 squares, rook moves automatically).
-Keeps your tile labels, rules section, PDF link.
-Improves AI slightly (prefers captures over random moves).
-
-Paste this complete code into GitHub index.html (replace everything), commit, refresh in incognito.
 HTML<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -363,3 +345,4 @@ HTML<!DOCTYPE html>
     </script>
 </body>
 </html>
+
