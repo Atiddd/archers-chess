@@ -1,40 +1,103 @@
-<!DOCTYPE html>
+To make the rules section feel like a professional game manual, I have integrated the specific terminology, notation system ($A/O/F$), and board constraints directly from the Archers Chess Master Rules document.+2This version uses a structured layout with distinct sections for the $10\times8$ board, the unique Archer mechanics, and the official piece values. I have also ensured the JavaScript strictly follows the Straight vs. Diagonal jumping rules defined in the manual: straight outward moves are blocked by any piece, but diagonal outward moves may jump.+4Full Improved Code with Professional Rules ManualHTML<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess v1.4 - Professional UI</title>
+    <title>Archers Chess v1.0 (Official Ruleset)</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #edeadf; color: #2c1e12; margin: 10px; }
-        canvas { border: 6px solid #4e342e; cursor: pointer; background: #deb887; box-shadow: 0 12px 30px rgba(0,0,0,0.3); border-radius: 4px; }
-        h1 { color: #5d4037; margin: 10px; font-weight: 800; }
-        #status { font-size: 20px; font-weight: 600; margin: 15px; color: #795548; height: 30px; }
-        .controls { margin-bottom: 15px; }
-        select, button { font-size: 16px; padding: 10px 20px; margin: 5px; border-radius: 8px; cursor: pointer; border: 1px solid #8d6e63; }
-        button { background: #6d4c41; color: white; transition: background 0.3s ease; }
-        button:hover { background: #4e342e; }
-        details { margin: 20px auto; max-width: 700px; text-align: left; border: 1px solid #d7ccc8; padding: 15px; border-radius: 12px; background: #efebe9; }
-        summary { font-size: 18px; cursor: pointer; color: #5d4037; font-weight: bold; }
+        :root {
+            --primary: #5d4037;
+            --accent: #8b0000;
+            --bg: #edeadf;
+            --tile-light: #f0d9b5;
+            --tile-dark: #b58863;
+        }
+        body { font-family: 'Segoe UI', serif; text-align: center; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; }
+        h1 { color: var(--primary); margin: 0 0 10px 0; font-size: 2.5em; text-transform: uppercase; letter-spacing: 2px; }
+        .author-tag { font-style: italic; color: #795548; margin-bottom: 20px; font-size: 0.9em; }
+        
+        canvas { border: 8px solid var(--primary); cursor: pointer; background: #deb887; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border-radius: 4px; }
+        
+        #status { font-size: 22px; font-weight: bold; margin: 15px; color: var(--accent); height: 32px; }
+        .controls { margin-bottom: 20px; }
+        button { font-size: 16px; padding: 10px 25px; border-radius: 4px; cursor: pointer; border: none; background: var(--primary); color: white; font-weight: bold; transition: 0.3s; }
+        button:hover { background: var(--accent); }
+
+        /* Professional Rules Dropdown */
+        .manual-container { max-width: 750px; margin: 30px auto; text-align: left; }
+        details { background: #fff; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        summary { padding: 15px 20px; font-size: 20px; font-weight: bold; cursor: pointer; background: var(--primary); color: white; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+        summary::after { content: '▼'; font-size: 0.7em; }
+        details[open] summary::after { content: '▲'; }
+        
+        .manual-content { padding: 25px; line-height: 1.6; }
+        .manual-section { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .manual-section:last-child { border: none; }
+        h3 { color: var(--accent); margin-top: 0; border-left: 4px solid var(--accent); padding-left: 10px; }
+        .notation-key { display: inline-block; background: #fbe9e7; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-family: monospace; }
+        .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .rules-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-    <h1>🏹 Archers Chess v1.4</h1>
+
+    <h1>🏹 Archers Chess</h1>
+    <div class="author-tag">Official Rules v1.0 • Created by John Patrick Read [cite: 2, 13]</div>
+
     <div class="controls">
-        <label for="aiLevel">AI: </label>
-        <select id="aiLevel">
-            <option value="easy">Easy</option>
-            <option value="normal" selected>Normal</option>
-        </select>
-        <button onclick="init()">Reset Game</button>
+        <button onclick="init()">Reset Field of Play</button>
     </div>
+
     <div id="status">Your Turn (White)</div>
     <canvas id="board" width="600" height="480"></canvas>
 
-    <details open>
-        <summary>📜 Game Rules</summary>
-        <p><strong>Castling:</strong> Move King 2 squares toward a Rook (Files A or H). The path must be clear.</p>
-        <p><strong>Archer:</strong> Moves exactly 3 squares (straight or diagonal), then 1 square diagonally back (left or right). Captures only on the final square.</p>
-    </details>
+    <div class="manual-container">
+        <details open>
+            <summary>📜 OFFICIAL RULES & MOVEMENT APPENDICES</summary>
+            <div class="manual-content">
+                
+                <div class="manual-section">
+                    <h3>1. The Field of Play (Board)</h3>
+                    <p>Played on an extended <strong>10 × 8 grid</strong>[cite: 19]. Files are designated as: 
+                    <span class="notation-key">–A, A, B, C, D, E, F, G, H, H+</span>. Ranks are numbered 1–8[cite: 19, 20].</p>
+                </div>
+
+                <div class="manual-section">
+                    <h3>2. The Archer Piece ($A$)</h3>
+                    <div class="rules-grid">
+                        <div>
+                            <p><strong>Value:</strong> Approximately 4 points (between a minor piece and a Rook)[cite: 42].</p>
+                            <p><strong>Movement:</strong> Two mandatory phases[cite: 24]:</p>
+                            <ul>
+                                <li><strong>Phase 1 (Outward):</strong> Exactly 3 squares in a straight or diagonal line[cite: 27].</li>
+                                <li><strong>Phase 2 (Return):</strong> Exactly 1 square back toward origin at a 45° offset[cite: 31, 32].</li>
+                            </ul>
+                        </div>
+                        <div style="background: #fdf5e6; padding: 15px; border-radius: 8px; font-size: 0.9em;">
+                            <strong>Jumping Constraints:</strong><br>
+                            • <strong>Straight Outward:</strong> Cannot jump over pieces. All three squares must be empty[cite: 28, 103].<br>
+                            • <strong>Diagonal Outward:</strong> May jump over occupied squares[cite: 29, 112].<br>
+                            • <strong>Capture:</strong> Only occurs on the final Landing Square ($F$)[cite: 25, 34].
+                        </div>
+                    </div>
+                </div>
+
+                <div class="manual-section">
+                    <h3>3. Notation System (A / O / F)</h3>
+                    <p>
+                        <span class="notation-key">A</span> = Starting Square [cite: 56]<br>
+                        <span class="notation-key">O</span> = Outward Movement Phase (3 squares) [cite: 57]<br>
+                        <span class="notation-key">F</span> = Final Landing Square (Capture/Check square) [cite: 58]
+                    </p>
+                </div>
+
+                <div class="manual-section" style="font-size: 0.85em; opacity: 0.8; text-align: center;">
+                    © 2026 John Patrick Read. All rights reserved[cite: 46]. All standard rules of chess apply unless stated[cite: 17, 40].
+                </div>
+
+            </div>
+        </details>
+    </div>
 
     <script>
         const canvas = document.getElementById('board');
@@ -114,6 +177,7 @@
             let ef = fileOf(endSq), er = rankOf(endSq);
             let dx = ef - sf, dy = er - sr;
 
+            // Pawn Logic
             if (p.toUpperCase() === 'P') {
                 let dir = isWhite(p) ? 1 : -1;
                 if (dx === 0 && dy === dir && !pieceAt(endSq)) return true;
@@ -122,13 +186,15 @@
                 return false;
             }
 
+            // Knight Logic
             if (p.toUpperCase() === 'N') return dirs.knight.some(d => d[0]===dx && d[1]===dy);
 
+            // King & Castling
             if (p.toUpperCase() === 'K') {
                 if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return true;
                 if (dy !== 0 || Math.abs(dx) !== 2) return false;
                 if (isWhite(p) ? whiteKingMoved : blackKingMoved) return false;
-                const rookFile = dx > 0 ? 8 : 1;
+                const rookFile = dx > 0 ? 8 : 1; 
                 const rook = pieceAt(idx(rookFile, sr));
                 if (!rook || rook.toUpperCase() !== 'R') return false;
                 if (isWhite(p) ? (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) : (dx > 0 ? blackRookRightMoved : blackRookLeftMoved)) return false;
@@ -139,24 +205,29 @@
                 return true;
             }
 
+            // Official Archer Logic [cite: 27, 31, 102]
             if (p.toUpperCase() === 'A') {
-                const queenDirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
-                for (let [odx, ody] of queenDirs) {
+                const outwardDirections = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
+                for (let [odx, ody] of outwardDirections) {
                     let f3 = sf + odx*3, r3 = sr + ody*3;
                     if (!isOnBoard(f3,r3)) continue;
-                    if ((odx===0 || ody===0) && !isPathClear(startSq, idx(f3,r3), odx, ody) && !(Math.abs(sf-f3)<=1 && Math.abs(sr-r3)<=1)) {
-                        let blocked = false;
-                        for(let step=1; step<3; step++) if(pieceAt(idx(sf+odx*step, sr+ody*step))) blocked = true;
-                        if(blocked) continue;
-                    }
-                    const backOffsets = [[-odx-ody, -ody+odx], [-odx+ody, -ody-odx]];
-                    for (let [ox, oy] of backOffsets) {
+                    
+                    // Straight outward moves cannot jump [cite: 28, 103]
+                    if (odx === 0 || ody === 0) {
+                        if (pieceAt(idx(sf+odx, sr+ody)) || pieceAt(idx(sf+odx*2, sr+ody*2)) || pieceAt(idx(f3, r3))) continue;
+                    } 
+                    // Diagonal outward moves MAY jump [cite: 29, 112]
+
+                    const returnOffsets = [[-odx-ody, -ody+odx], [-odx+ody, -ody-odx]];
+                    for (let [ox, oy] of returnOffsets) {
+                        // The manual says "Exactly 1 square back toward its origin at a 45 degree offset" [cite: 31]
                         if (f3 + Math.sign(ox) === ef && r3 + Math.sign(oy) === er) return true;
                     }
                 }
                 return false;
             }
 
+            // Sliding Pieces
             let slides = p.toUpperCase() === 'R' ? dirs.rook : p.toUpperCase() === 'B' ? dirs.bishop : p.toUpperCase() === 'Q' ? dirs.queen : [];
             for (let [ddx, ddy] of slides) {
                 if (ddx * dy === ddy * dx && Math.sign(ddx)===Math.sign(dx) && Math.sign(ddy)===Math.sign(dy)) {
@@ -169,20 +240,25 @@
         function makeMove(startSq, endSq) {
             let p = pieceAt(startSq);
             let sf = fileOf(startSq), ef = fileOf(endSq), r = rankOf(startSq);
+
             if (p.toUpperCase() === 'K' && Math.abs(ef - sf) === 2) {
                 const rookFromFile = ef > sf ? 8 : 1;
                 const rookToFile = ef > sf ? ef - 1 : ef + 1;
                 board[idx(rookToFile, r)] = board[idx(rookFromFile, r)];
                 board[idx(rookFromFile, r)] = null;
             }
+
             board[endSq] = p;
             board[startSq] = null;
+
             if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
             if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
+
             if (p === 'K') whiteKingMoved = true;
             if (p === 'k') blackKingMoved = true;
             if (p === 'R') { if(sf===1) whiteRookLeftMoved = true; if(sf===8) whiteRookRightMoved = true; }
             if (p === 'r') { if(sf===1) blackRookLeftMoved = true; if(sf===8) blackRookRightMoved = true; }
+
             turn = turn === 'w' ? 'b' : 'w';
         }
 
@@ -195,21 +271,17 @@
                     ctx.fillStyle = isLight ? '#f0d9b5' : '#b58863';
                     ctx.fillRect(x, y, SQ, SQ);
 
-                    // --- Neat Coordinate Markers on Every Tile ---
                     ctx.font = '10px Arial';
                     ctx.textAlign = 'left';
                     ctx.textBaseline = 'top';
-                    // Use contrasting color for readability
-                    ctx.fillStyle = isLight ? 'rgba(139, 69, 19, 0.5)' : 'rgba(240, 217, 181, 0.6)';
+                    ctx.fillStyle = isLight ? 'rgba(139, 69, 19, 0.4)' : 'rgba(240, 217, 181, 0.5)';
                     ctx.fillText(fileLabels[f] + (r + 1), x + 4, y + 4);
 
                     let p = pieceAt(idx(f,r));
                     if (p) {
                         ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
-                        ctx.shadowBlur = 2; ctx.shadowColor = "rgba(0,0,0,0.2)";
                         ctx.font = '46px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                         ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 4);
-                        ctx.shadowBlur = 0; // Reset shadow for next drawings
                     }
                     if (selected === idx(f,r)) {
                         ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 4;
@@ -226,6 +298,7 @@
             const r = 7 - Math.floor((e.clientY - rect.top) / SQ);
             if (!isOnBoard(f,r)) return;
             const sq = idx(f,r);
+
             if (selected === null) {
                 let p = pieceAt(sq);
                 if (p && isWhite(p)) { selected = sq; drawBoard(); }
@@ -235,12 +308,11 @@
                     drawBoard();
                     if (!gameOver && turn === 'b') {
                         statusEl.textContent = "AI Thinking...";
-                        setTimeout(aiMove, 500);
+                        setTimeout(aiMove, 600);
                     }
-                } else {
-                    selected = null;
-                    drawBoard();
                 }
+                selected = null;
+                drawBoard();
             }
         });
 
@@ -259,7 +331,7 @@
                 drawBoard();
                 statusEl.textContent = "Your Turn (White)";
             } else {
-                statusEl.textContent = "Game Over";
+                statusEl.textContent = "Checkmate or Stalemate";
                 gameOver = true;
             }
         }
