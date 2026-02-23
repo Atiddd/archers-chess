@@ -1,4 +1,46 @@
-const canvas = document.getElementById('board');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archers Chess vs AI - v1.4 (Fixed & Stable)</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; margin: 10px; }
+        canvas { border: 4px solid #8b4513; cursor: pointer; background: #deb887; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+        h1 { color: #8b0000; margin: 10px; }
+        #status { font-size: 22px; font-weight: bold; margin: 15px; color: #444; }
+        select, button { font-size: 18px; padding: 8px 16px; margin: 5px; border-radius: 6px; cursor: pointer; }
+        button { background: #8b4513; color: white; border: none; }
+        button:hover { background: #a0522d; }
+        details { margin: 20px auto; max-width: 900px; text-align: left; border: 1px solid #ccc; padding: 10px; border-radius: 8px; background: #fff8e7; }
+        summary { font-size: 20px; cursor: pointer; color: #8b0000; font-weight: bold; }
+        a { color: #8b0000; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>🏹 Archers Chess v1.4 - Fixed</h1>
+    <p>Rooks are on files A and H. King castles by moving 2 squares.</p>
+    <div>
+        <label for="aiLevel">AI Difficulty: </label>
+        <select id="aiLevel">
+            <option value="easy">Easy</option>
+            <option value="normal" selected>Normal</option>
+            <option value="hard">Hard</option>
+        </select>
+        <button onclick="init()">New Game</button>
+    </div>
+    <div id="status">Your Turn (White)</div>
+    <canvas id="board" width="600" height="480"></canvas>
+    <p>Files: –A A B C D E F G H H+</p>
+
+    <details open>
+        <summary>📜 Game Rules & Archer Movement</summary>
+        <p><strong>Castling:</strong> King moves 2 squares toward the Rook. Path must be clear.</p>
+        <p><strong>The Archer:</strong> Moves 3 squares (straight/diagonal), then 1 square diagonal back. Captures only on the final square.</p>
+    </details>
+
+    <script>
+        const canvas = document.getElementById('board');
         const ctx = canvas.getContext('2d');
         const SQ = 60;
         const FILES = 10;
@@ -10,13 +52,9 @@ const canvas = document.getElementById('board');
         let turn = 'w';
         let gameOver = false;
 
-        // Castling flags
-        let whiteKingMoved = false;
-        let blackKingMoved = false;
-        let whiteRookLeftMoved = false;
-        let whiteRookRightMoved = false;
-        let blackRookLeftMoved = false;
-        let blackRookRightMoved = false;
+        let whiteKingMoved = false, blackKingMoved = false;
+        let whiteRookLeftMoved = false, whiteRookRightMoved = false;
+        let blackRookLeftMoved = false, blackRookRightMoved = false;
 
         const pieceSymbols = {
             'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹',
@@ -33,31 +71,6 @@ const canvas = document.getElementById('board');
             knight: [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]]
         };
 
-        function init() {
-            board.fill(null);
-            // White Pieces (Rank 0 and 1)
-            board[idx(0,0)] = 'A'; board[idx(1,0)] = 'R'; board[idx(2,0)] = 'N';
-            board[idx(3,0)] = 'B'; board[idx(4,0)] = 'Q'; board[idx(5,0)] = 'K';
-            board[idx(6,0)] = 'B'; board[idx(7,0)] = 'N'; board[idx(8,0)] = 'R'; board[idx(9,0)] = 'A';
-            for(let f=0; f<FILES; f++) board[idx(f,1)] = 'P';
-
-            // Black Pieces (Rank 7 and 6)
-            for(let f=0; f<FILES; f++) board[idx(f,6)] = 'p';
-            board[idx(0,7)] = 'a'; board[idx(1,7)] = 'r'; board[idx(2,7)] = 'n';
-            board[idx(3,7)] = 'b'; board[idx(4,7)] = 'q'; board[idx(5,7)] = 'k';
-            board[idx(6,7)] = 'b'; board[idx(7,7)] = 'n'; board[idx(8,7)] = 'r'; board[idx(9,7)] = 'a';
-
-            selected = null;
-            turn = 'w';
-            gameOver = false;
-            whiteKingMoved = false; blackKingMoved = false;
-            whiteRookLeftMoved = false; whiteRookRightMoved = false;
-            blackRookLeftMoved = false; blackRookRightMoved = false;
-
-            statusEl.textContent = "Your Turn (White)";
-            drawBoard();
-        }
-
         function idx(f, r) { return f * RANKS + r; }
         function fileOf(sq) { return Math.floor(sq / RANKS); }
         function rankOf(sq) { return sq % RANKS; }
@@ -66,47 +79,35 @@ const canvas = document.getElementById('board');
         function isWhite(p) { return p && p === p.toUpperCase(); }
         function sameSide(p1,p2) { return p1 && p2 && isWhite(p1) === isWhite(p2); }
 
+        function init() {
+            board.fill(null);
+            // Setup Pieces
+            const setup = ['A','R','N','B','Q','K','B','N','R','A'];
+            for(let f=0; f<FILES; f++) {
+                board[idx(f,0)] = setup[f];
+                board[idx(f,1)] = 'P';
+                board[idx(f,6)] = 'p';
+                board[idx(f,7)] = setup[f].toLowerCase();
+            }
+
+            selected = null; turn = 'w'; gameOver = false;
+            whiteKingMoved = false; blackKingMoved = false;
+            whiteRookLeftMoved = false; whiteRookRightMoved = false;
+            blackRookLeftMoved = false; blackRookRightMoved = false;
+            statusEl.textContent = "Your Turn (White)";
+            drawBoard();
+        }
+
         function isPathClear(startSq, endSq, df, dr) {
             let f = fileOf(startSq) + df;
             let r = rankOf(startSq) + dr;
             const ef = fileOf(endSq);
             const er = rankOf(endSq);
             while (f !== ef || r !== er) {
-                if (!isOnBoard(f, r) || pieceAt(idx(f, r))) return false;
-                f += df;
-                r += dr;
+                if (!isOnBoard(f,r) || pieceAt(idx(f, r))) return false;
+                f += df; r += dr;
             }
             return true;
-        }
-
-        function drawBoard() {
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            for(let r=7; r>=0; r--) {
-                for(let f=0; f<FILES; f++) {
-                    let x = f * SQ;
-                    let y = (7 - r) * SQ;
-                    ctx.fillStyle = ((f + r) % 2 === 0) ? '#f0d9b5' : '#b58863';
-                    ctx.fillRect(x, y, SQ, SQ);
-                    ctx.font = '10px Arial';
-                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-                    ctx.textAlign = 'left';
-                    ctx.textBaseline = 'bottom';
-                    ctx.fillText(fileLabels[f] + (r + 1), x + 4, y + SQ - 4);
-                    let p = pieceAt(idx(f,r));
-                    if (p) {
-                        ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
-                        ctx.font = 'bold 48px serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 4);
-                    }
-                    if (selected === idx(f,r)) {
-                        ctx.strokeStyle = '#ffeb3b';
-                        ctx.lineWidth = 5;
-                        ctx.strokeRect(x+4, y+4, SQ-8, SQ-8);
-                    }
-                }
-            }
         }
 
         function isValidMove(startSq, endSq) {
@@ -120,7 +121,6 @@ const canvas = document.getElementById('board');
             let ef = fileOf(endSq), er = rankOf(endSq);
             let dx = ef - sf, dy = er - sr;
 
-            // Pawns
             if (p.toUpperCase() === 'P') {
                 let dir = isWhite(p) ? 1 : -1;
                 if (dx === 0 && dy === dir && !tp) return true;
@@ -129,20 +129,18 @@ const canvas = document.getElementById('board');
                 return false;
             }
 
-            // Knight
             if (p.toUpperCase() === 'N') return dirs.knight.some(d => d[0]===dx && d[1]===dy);
 
-            // King & Castling
             if (p.toUpperCase() === 'K') {
                 if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return true;
-                const isWhiteKing = isWhite(p);
-                if (isWhiteKing ? whiteKingMoved : blackKingMoved) return false;
+                // Castling Logic
                 if (dy !== 0 || Math.abs(dx) !== 2) return false;
-                const rookFile = dx > 0 ? 8 : 1;
-                const rookSq = idx(rookFile, sr);
-                const rook = pieceAt(rookSq);
+                if (isWhite(p) ? whiteKingMoved : blackKingMoved) return false;
+                const rookFile = dx > 0 ? 8 : 1; 
+                const rook = pieceAt(idx(rookFile, sr));
                 if (!rook || rook.toUpperCase() !== 'R') return false;
-                if (isWhiteKing ? (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) : (dx > 0 ? blackRookRightMoved : blackRookLeftMoved)) return false;
+                if (isWhite(p) ? (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) : (dx > 0 ? blackRookRightMoved : blackRookLeftMoved)) return false;
+                
                 const step = dx > 0 ? 1 : -1;
                 for (let i = sf + step; i !== rookFile; i += step) {
                     if (pieceAt(idx(i, sr))) return false;
@@ -150,30 +148,25 @@ const canvas = document.getElementById('board');
                 return true;
             }
 
-            // Archer
             if (p.toUpperCase() === 'A') {
                 for (let [odx, ody] of dirs.queen) {
                     let f3 = sf + odx*3, r3 = sr + ody*3;
                     if (!isOnBoard(f3,r3)) continue;
-                    // Straight lines blocked?
-                    if ((odx===0 || ody===0) && (!isPathClear(startSq, idx(f3,r3), odx, ody) && !(Math.abs(sf-f3)<=1 && Math.abs(sr-r3)<=1))) {
-                        // Special check: isPathClear doesn't check the target square itself, so we check path to f3,r3
-                        let blocked = false;
-                        for(let step=1; step<3; step++) if(pieceAt(idx(sf+odx*step, sr+ody*step))) blocked = true;
-                        if(blocked) continue;
+                    if ((odx===0 || ody===0) && !isPathClear(startSq, idx(f3, r3), odx, ody)) {
+                        // In Archers Chess, square 3 must also be empty for straight moves
+                        if (pieceAt(idx(f3,r3))) continue;
+                        // Manual check for step 1 and 2
+                        if (pieceAt(idx(sf+odx, sr+ody)) || pieceAt(idx(sf+odx*2, sr+ody*2))) continue;
                     }
-                    const offsets = [[-odx - ody, -ody + odx], [-odx + ody, -ody - odx]];
+                    const offsets = [[-odx-ody, -ody+odx], [-odx+ody, -ody-odx]];
                     for (let [ox, oy] of offsets) {
-                        if (f3 + ox === ef && r3 + oy === er) return true;
+                        if (f3+Math.sign(ox) === ef && r3+Math.sign(oy) === er) return true;
                     }
                 }
                 return false;
             }
 
-            // Sliding pieces
-            let slides = p.toUpperCase() === 'R' ? dirs.rook :
-                         p.toUpperCase() === 'B' ? dirs.bishop :
-                         p.toUpperCase() === 'Q' ? dirs.queen : [];
+            let slides = p.toUpperCase() === 'R' ? dirs.rook : p.toUpperCase() === 'B' ? dirs.bishop : p.toUpperCase() === 'Q' ? dirs.queen : [];
             for (let [ddx, ddy] of slides) {
                 if (ddx * dy === ddy * dx && Math.sign(ddx)===Math.sign(dx) && Math.sign(ddy)===Math.sign(dy)) {
                     return isPathClear(startSq, endSq, Math.sign(dx), Math.sign(dy));
@@ -184,35 +177,53 @@ const canvas = document.getElementById('board');
 
         function makeMove(startSq, endSq) {
             let p = pieceAt(startSq);
+            let sf = fileOf(startSq), ef = fileOf(endSq), r = rankOf(startSq);
+
+            // Handle Castling Rook Jump
+            if (p.toUpperCase() === 'K' && Math.abs(ef - sf) === 2) {
+                const rookFromFile = ef > sf ? 8 : 1;
+                const rookToFile = ef > sf ? ef - 1 : ef + 1;
+                board[idx(rookToFile, r)] = board[idx(rookFromFile, r)];
+                board[idx(rookFromFile, r)] = null;
+            }
+
             board[endSq] = p;
             board[startSq] = null;
 
+            // Promotion
             if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
             if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
 
-            if (p.toUpperCase() === 'K') {
-                const sf = fileOf(startSq), ef = fileOf(endSq);
-                if (Math.abs(ef - sf) === 2) {
-                    const rookFromFile = ef > sf ? 8 : 1;
-                    const rookToFile = ef > sf ? ef-1 : ef+1;
-                    const r = rankOf(startSq);
-                    board[idx(rookToFile, r)] = pieceAt(idx(rookFromFile, r));
-                    board[idx(rookFromFile, r)] = null;
-                }
-                if (isWhite(p)) whiteKingMoved = true; else blackKingMoved = true;
-            }
+            // Flags
+            if (p === 'K') whiteKingMoved = true;
+            if (p === 'k') blackKingMoved = true;
+            if (p === 'R') { if(sf===1) whiteRookLeftMoved = true; if(sf===8) whiteRookRightMoved = true; }
+            if (p === 'r') { if(sf===1) blackRookLeftMoved = true; if(sf===8) blackRookRightMoved = true; }
 
-            if (p.toUpperCase() === 'R') {
-                const f = fileOf(startSq);
-                if (isWhite(p)) {
-                    if (f === 1) whiteRookLeftMoved = true;
-                    if (f === 8) whiteRookRightMoved = true;
-                } else {
-                    if (f === 1) blackRookLeftMoved = true;
-                    if (f === 8) blackRookRightMoved = true;
+            turn = turn === 'w' ? 'b' : 'w';
+        }
+
+        function drawBoard() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            for(let r=7; r>=0; r--) {
+                for(let f=0; f<FILES; f++) {
+                    let x = f * SQ, y = (7 - r) * SQ;
+                    ctx.fillStyle = ((f + r) % 2 === 0) ? '#f0d9b5' : '#b58863';
+                    ctx.fillRect(x, y, SQ, SQ);
+                    ctx.font = '10px Arial'; ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                    ctx.fillText(fileLabels[f] + (r + 1), x + 2, y + SQ - 2);
+                    let p = pieceAt(idx(f,r));
+                    if (p) {
+                        ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
+                        ctx.font = '44px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 2);
+                    }
+                    if (selected === idx(f,r)) {
+                        ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 4;
+                        ctx.strokeRect(x+2, y+2, SQ-4, SQ-4);
+                    }
                 }
             }
-            turn = turn === 'w' ? 'b' : 'w';
         }
 
         canvas.addEventListener('click', e => {
@@ -220,33 +231,26 @@ const canvas = document.getElementById('board');
             const rect = canvas.getBoundingClientRect();
             const f = Math.floor((e.clientX - rect.left) / SQ);
             const r = 7 - Math.floor((e.clientY - rect.top) / SQ);
-            if (!isOnBoard(f,r)) return;
             const sq = idx(f,r);
-
             if (selected === null) {
                 if (pieceAt(sq) && isWhite(pieceAt(sq))) { selected = sq; drawBoard(); }
             } else {
                 if (isValidMove(selected, sq)) {
                     makeMove(selected, sq);
                     drawBoard();
-                    if (turn === 'b') {
-                        statusEl.textContent = "AI Thinking...";
-                        setTimeout(aiMove, 500);
-                    }
-                } else {
-                    selected = null;
-                    drawBoard();
+                    statusEl.textContent = "AI Thinking...";
+                    setTimeout(aiMove, 500);
                 }
+                selected = null; drawBoard();
             }
         });
 
         function aiMove() {
             let moves = [];
-            for (let sq = 0; sq < board.length; sq++) {
-                const p = pieceAt(sq);
-                if (p && !isWhite(p)) {
+            for (let s = 0; s < board.length; s++) {
+                if (board[s] && !isWhite(board[s])) {
                     for (let t = 0; t < board.length; t++) {
-                        if (isValidMove(sq, t)) moves.push({from: sq, to: t});
+                        if (isValidMove(s, t)) moves.push({from: s, to: t});
                     }
                 }
             }
@@ -256,8 +260,12 @@ const canvas = document.getElementById('board');
                 drawBoard();
                 statusEl.textContent = "Your Turn (White)";
             } else {
-                statusEl.textContent = "Game Over";
+                statusEl.textContent = "Checkmate or Stalemate";
+                gameOver = true;
             }
         }
 
         init();
+    </script>
+</body>
+</html>
