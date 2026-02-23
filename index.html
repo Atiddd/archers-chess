@@ -1,7 +1,4 @@
-Here is the fully improved, tested, and ready-to-paste code.
-I went through every line, fixed the castling bug (the path-clear loop was incorrectly including the rook's square), added clear comments, and made sure the king jumps 2 squares while the rook automatically moves.
-Castling now works reliably for both sides (kingside and queenside).
-HTML<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -22,7 +19,7 @@ HTML<!DOCTYPE html>
 </head>
 <body>
     <h1>🏹 Archers Chess v1.3 - Play White vs AI</h1>
-    <p>Full rules + Archer + castling (now working) + tile labels. Choose AI level:</p>
+    <p>Full rules + Archer + castling (fixed) + tile labels. Choose AI level:</p>
     <div>
         <label for="aiLevel">AI Difficulty: </label>
         <select id="aiLevel">
@@ -198,9 +195,9 @@ HTML<!DOCTYPE html>
                 if (!rook || rook.toUpperCase() !== 'R') return false;
                 if (isWhiteKing ? (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) : (dx > 0 ? blackRookRightMoved : blackRookLeftMoved)) return false;
 
-                // Path clear - only squares BETWEEN king and rook (NOT including rook)
+                // Path clear - only squares BETWEEN king and rook
                 const step = dx > 0 ? 1 : -1;
-                for (let i = sf + step; i !== ef; i += step) {   // FIXED: stops at king's landing square
+                for (let i = sf + step; i !== ef; i += step) {
                     if (pieceAt(idx(i, sr))) return false;
                 }
                 return true;
