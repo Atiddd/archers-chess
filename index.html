@@ -1,40 +1,67 @@
+I apologize for that—in the process of adding the complex checkmate logic, the UI container was simplified too much.
+
+I have combined the advanced game engine (Check/Checkmate/AI) with the professional rules manual and author styling from the previous version. I also restored the piece values and the refined CSS layout.
+
+Archers Chess v1.0 (Official Ruleset & Full Game Logic)
+HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess v1.0 - Full Game Logic</title>
+    <title>Archers Chess v1.0 - Official Ruleset</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
             --tile-light: #f0d9b5; --tile-dark: #b58863; --panel-bg: #fffcf5;
         }
         body { font-family: 'Segoe UI', serif; text-align: center; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; }
-        .game-container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; flex-wrap: wrap; position: relative; }
+        h1 { color: var(--primary); margin: 0 0 5px 0; font-size: 2.2em; text-transform: uppercase; letter-spacing: 2px; }
+        .author-tag { font-style: italic; color: #795548; margin-bottom: 15px; font-size: 0.9em; }
         
-        /* Canvas & Overlay */
+        /* Game Layout */
+        .game-container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
+        
         #board-wrapper { position: relative; }
         canvas { border: 8px solid var(--primary); cursor: pointer; background: #deb887; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border-radius: 4px; }
+        
+        /* Overlays & UI */
         #game-over-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); color: white; display: none;
+            background: rgba(0,0,0,0.8); color: white; display: none;
             flex-direction: column; justify-content: center; align-items: center;
             border-radius: 4px; z-index: 10;
         }
-        #game-over-overlay h2 { font-size: 3em; margin: 0; color: #ffeb3b; }
+        #game-over-overlay h2 { font-size: 3em; margin: 0; color: #ffeb3b; text-shadow: 2px 2px 4px #000; }
+
+        .side-panel { width: 170px; background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; text-align: left; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); }
+        .side-panel h3 { margin-top: 0; font-size: 1.1em; border-bottom: 2px solid var(--primary); padding-bottom: 5px; color: var(--primary); }
+        .capture-group { height: 160px; overflow-y: auto; font-size: 26px; line-height: 1.2; letter-spacing: 2px; }
         
-        .side-panel { width: 160px; background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; text-align: left; }
-        .capture-group { height: 140px; font-size: 24px; }
-        #status { font-size: 22px; font-weight: bold; margin: 10px; height: 32px; color: var(--primary); }
-        .check-alert { color: var(--accent); animation: blink 1s infinite; }
+        #status { font-size: 22px; font-weight: bold; margin: 15px; height: 32px; color: var(--primary); }
+        .check-alert { color: var(--accent); animation: blink 0.8s infinite; }
         @keyframes blink { 50% { opacity: 0; } }
-        button { font-size: 15px; padding: 10px 20px; border-radius: 4px; cursor: pointer; background: var(--primary); color: white; border: none; font-weight: bold; }
+
+        button { font-size: 15px; padding: 10px 25px; border-radius: 4px; cursor: pointer; border: none; background: var(--primary); color: white; font-weight: bold; transition: 0.3s; }
+        button:hover { background: var(--accent); }
+
+        /* Manual Styling */
+        .manual-container { max-width: 850px; margin: 40px auto; text-align: left; }
+        details { background: #fff; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        summary { padding: 15px 20px; font-size: 18px; font-weight: bold; cursor: pointer; background: var(--primary); color: white; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+        .manual-content { padding: 25px; line-height: 1.6; }
+        h4 { color: var(--accent); border-bottom: 1px solid #ddd; margin-top: 20px; }
+        .notation-key { background: #fbe9e7; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-family: monospace; }
     </style>
 </head>
 <body>
 
     <h1>🏹 Archers Chess</h1>
-    <div style="font-style: italic; margin-bottom: 10px;">Created by John Patrick Read [cite: 13]</div>
+    <div class="author-tag">Official Rules v1.0 • Created by John Patrick Read</div>
+
+    <div class="controls">
+        <button onclick="init()">Reset Field of Play</button>
+    </div>
 
     <div id="status">Your Turn</div>
 
@@ -48,8 +75,8 @@
             <canvas id="board" width="600" height="480"></canvas>
             <div id="game-over-overlay">
                 <h2 id="win-message">YOU WIN!</h2>
-                <p>Checkmate - Game Over</p>
-                <button onclick="init()">Play Again</button>
+                <p style="font-size: 1.2em;">Checkmate - Game Over</p>
+                <button onclick="init()">Play New Match</button>
             </div>
         </div>
 
@@ -59,15 +86,38 @@
         </div>
     </div>
 
+    <div class="manual-container">
+        <details open>
+            <summary>📜 OFFICIAL RULES & MOVEMENT APPENDICES</summary>
+            <div class="manual-content">
+                <h4>1. The Archer Piece ($A$)</h4>
+                <p>The Archer is a ranged piece (Value: 4) moving in two phases:
+                <ul>
+                    <li><strong>Outward ($O$):</strong> Exactly 3 squares (Straight or Diagonal).</li>
+                    <li><strong>Return ($F$):</strong> Exactly 1 square back toward origin at a 45° offset.</li>
+                </ul>
+                <strong>Note:</strong> Straight outward moves are blocked by pieces. Diagonal outward moves may jump.</p>
+                
+                <h4>2. The 10x8 Field of Play</h4>
+                <p>Files: <span class="notation-key">–A, A, B, C, D, E, F, G, H, H+</span>. Ranks: 1–8.</p>
+                
+                <h4>3. Victory Conditions</h4>
+                <p><strong>Check:</strong> Occurs when a King is under attack (including by an Archer's final square).<br>
+                <strong>Checkmate:</strong> Occurs when a King is in Check and has no legal means of escape.</p>
+            </div>
+        </details>
+    </div>
+
     <script>
         const canvas = document.getElementById('board');
         const ctx = canvas.getContext('2d');
         const SQ = 60; const FILES = 10; const RANKS = 8;
         
         const pieceSymbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹','k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🏹' };
+        const fileLabels = ['–A','A','B','C','D','E','F','G','H','H+'];
+
         let board = new Array(FILES * RANKS).fill(null);
         let turn = 'w', gameOver = false, selected = null, captures = { w: [], b: [] };
-        let movedFlags = { K: false, k: false, R1: false, R8: false, r1: false, r8: false };
 
         function idx(f, r) { return f * RANKS + r; }
         function isOnBoard(f,r) { return f>=0 && f<FILES && r>=0 && r<RANKS; }
@@ -75,7 +125,6 @@
 
         function init() {
             board.fill(null); captures = { w: [], b: [] }; gameOver = false; turn = 'w'; selected = null;
-            movedFlags = { K: false, k: false, R1: false, R8: false, r1: false, r8: false };
             const setup = ['A','R','N','B','Q','K','B','N','R','A'];
             for(let f=0; f<FILES; f++) {
                 board[idx(f,0)] = setup[f]; board[idx(f,1)] = 'P';
@@ -83,21 +132,6 @@
             }
             document.getElementById('game-over-overlay').style.display = 'none';
             updateUI(); drawBoard();
-        }
-
-        function getValidMoves(sq, checkSafety = true) {
-            let moves = [];
-            for (let t = 0; t < board.length; t++) {
-                if (validateMoveBasic(sq, t)) {
-                    if (!checkSafety) { moves.push(t); continue; }
-                    // Prevent moves that leave/put king in check
-                    let temp = board[t], p = board[sq];
-                    board[t] = p; board[sq] = null;
-                    if (!isKingInCheck(isWhite(p) ? 'w' : 'b')) moves.push(t);
-                    board[sq] = p; board[t] = temp;
-                }
-            }
-            return moves;
         }
 
         function validateMoveBasic(s, t) {
@@ -121,7 +155,8 @@
                     let f3 = sf+ox*3, r3 = sr+oy*3;
                     if (!isOnBoard(f3,r3)) continue;
                     if ((ox===0 || oy===0) && (board[idx(sf+ox, sr+oy)] || board[idx(sf+ox*2, sr+oy*2)])) continue;
-                    if (Math.abs(f3-ef)===1 && Math.abs(r3-er)===1 && Math.sign(ef-f3)!==ox && Math.sign(er-r3)!==oy) return true;
+                    const bOffsets = [[-ox-oy, -oy+ox], [-ox+oy, -oy-ox]];
+                    for (let [bx, by] of bOffsets) if (f3 + Math.sign(bx) === ef && r3 + Math.sign(by) === er) return true;
                 }
                 return false;
             }
@@ -147,7 +182,28 @@
             return false;
         }
 
-        function checkGameEnd() {
+        function getValidMoves(sq) {
+            let moves = [];
+            for (let t = 0; t < board.length; t++) {
+                if (validateMoveBasic(sq, t)) {
+                    let temp = board[t], p = board[sq];
+                    board[t] = p; board[sq] = null;
+                    if (!isKingInCheck(isWhite(p) ? 'w' : 'b')) moves.push(t);
+                    board[sq] = p; board[t] = temp;
+                }
+            }
+            return moves;
+        }
+
+        function makeMove(s, t) {
+            let p = board[s], tp = board[t];
+            if (tp) { if (isWhite(tp)) captures.w.push(tp); else captures.b.push(tp); }
+            board[t] = p; board[s] = null;
+            if (p === 'P' && t % RANKS === 7) board[t] = 'Q';
+            if (p === 'p' && t % RANKS === 0) board[t] = 'q';
+            turn = turn === 'w' ? 'b' : 'w';
+            updateUI(); drawBoard();
+            
             let hasMoves = false;
             for (let i=0; i<board.length; i++) {
                 if (board[i] && isWhite(board[i]) === (turn==='w')) {
@@ -156,36 +212,17 @@
             }
             if (!hasMoves) {
                 gameOver = true;
-                let inCheck = isKingInCheck(turn);
-                let overlay = document.getElementById('game-over-overlay');
-                let msg = document.getElementById('win-message');
-                overlay.style.display = 'flex';
-                if (inCheck) {
-                    msg.textContent = turn === 'w' ? "AI WINS!" : "YOU WIN!";
-                } else {
-                    msg.textContent = "STALEMATE";
-                }
+                document.getElementById('game-over-overlay').style.display = 'flex';
+                document.getElementById('win-message').textContent = isKingInCheck(turn) ? (turn==='w'?"AI WINS!":"YOU WIN!") : "STALEMATE";
             }
-        }
-
-        function makeMove(s, t) {
-            let p = board[s], tp = board[t];
-            if (tp) { if (isWhite(tp)) captures.w.push(tp); else captures.b.push(tp); }
-            board[t] = p; board[s] = null;
-            turn = turn === 'w' ? 'b' : 'w';
-            updateUI(); drawBoard();
-            checkGameEnd();
         }
 
         function updateUI() {
             document.getElementById('white-captures').textContent = captures.w.map(p => pieceSymbols[p]).join('');
             document.getElementById('black-captures').textContent = captures.b.map(p => pieceSymbols[p]).join('');
             let status = document.getElementById('status');
-            if (isKingInCheck(turn)) {
-                status.innerHTML = `<span class="check-alert">CHECK!</span> ${turn==='w'?'Your':'AI'} Turn`;
-            } else {
-                status.textContent = turn === 'w' ? "Your Turn" : "AI Thinking...";
-            }
+            if (isKingInCheck(turn)) status.innerHTML = `<span class="check-alert">CHECK!</span> ${turn==='w'?'Your':'AI'} Turn`;
+            else status.textContent = turn === 'w' ? "Your Turn" : "AI Thinking...";
         }
 
         function drawBoard() {
@@ -193,8 +230,11 @@
             for(let r=7; r>=0; r--) {
                 for(let f=0; f<FILES; f++) {
                     let x = f*SQ, y = (7-r)*SQ;
-                    ctx.fillStyle = (f+r)%2===0 ? '#f0d9b5' : '#b58863';
+                    let isLight = (f+r)%2===0;
+                    ctx.fillStyle = isLight ? '#f0d9b5' : '#b58863';
                     ctx.fillRect(x,y,SQ,SQ);
+                    ctx.font = '10px Arial'; ctx.textAlign = 'left'; ctx.fillStyle = isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)';
+                    ctx.fillText(fileLabels[f] + (r + 1), x + 4, y + 10);
                     let p = board[idx(f,r)];
                     if (p) {
                         ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
