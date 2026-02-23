@@ -19,7 +19,7 @@
 </head>
 <body>
     <h1>🏹 Archers Chess v1.3 - Play White vs AI</h1>
-    <p>Full rules + Archer + castling (now working) + tile labels. Choose AI level:</p>
+    <p>Full rules + Archer + castling (working) + tile labels. Choose AI level:</p>
     <div>
         <label for="aiLevel">AI Difficulty: </label>
         <select id="aiLevel">
@@ -43,6 +43,7 @@
             <li>Capture only on the final square.</li>
         </ul>
         <p>Castling works as in standard chess (king + rook, path clear, not in check).</p>
+        <p>Tile labels match official notation: files –A to H+ (left to right from White’s view), ranks 1–8.</p>
         <p>Full official rules & declaration (PDF): <a href="Archers_Chess_Master_Rules_Appendices_Declaration_v1.0.pdf" target="_blank">Download PDF</a></p>
     </details>
 
@@ -171,6 +172,7 @@
             if (p.toUpperCase() === 'N') return dirs.knight.some(d => d[0]===dx && d[1]===dy);
 
             if (p.toUpperCase() === 'K') {
+                // Normal king move
                 if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return true;
 
                 // Castling
@@ -184,10 +186,12 @@
                 if (!rook || rook.toUpperCase() !== 'R') return false;
                 if (isWhiteKing ? (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) : (dx > 0 ? blackRookRightMoved : blackRookLeftMoved)) return false;
 
-                // Path clear - squares BETWEEN king and rook
+                // Path clear - squares BETWEEN king and rook (not including rook)
                 const step = dx > 0 ? 1 : -1;
-                for (let i = sf + step; i !== ef; i += step) {
+                let i = sf + step;
+                while (i !== rookFile) {
                     if (pieceAt(idx(i, sr))) return false;
+                    i += step;
                 }
                 return true;
             }
@@ -230,10 +234,11 @@
             board[endSq] = p;
             board[startSq] = null;
 
+            // Promotion
             if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
             if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
 
-            // Castling rook jump
+            // Castling - move the rook
             if (p.toUpperCase() === 'K') {
                 const sf = fileOf(startSq), ef = fileOf(endSq);
                 if (Math.abs(ef - sf) === 2) {
