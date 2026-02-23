@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess vs AI - v1.3 (Castling Fixed)</title>
+    <title>Archers Chess vs AI - v1.3 (Castling Working)</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; margin: 10px; }
         canvas { border: 4px solid #8b4513; cursor: pointer; background: #deb887; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
@@ -19,7 +19,7 @@
 </head>
 <body>
     <h1>🏹 Archers Chess v1.3 - Play White vs AI</h1>
-    <p>Full rules + Archer + castling (fixed) + tile labels. Choose AI level:</p>
+    <p>Full rules + Archer + castling (now working) + tile labels. Choose AI level:</p>
     <div>
         <label for="aiLevel">AI Difficulty: </label>
         <select id="aiLevel">
@@ -43,7 +43,6 @@
             <li>Capture only on the final square.</li>
         </ul>
         <p>Castling works as in standard chess (king + rook, path clear, not in check).</p>
-        <p>Tile labels match official notation: files –A to H+ (left to right from White’s view), ranks 1–8.</p>
         <p>Full official rules & declaration (PDF): <a href="Archers_Chess_Master_Rules_Appendices_Declaration_v1.0.pdf" target="_blank">Download PDF</a></p>
     </details>
 
@@ -150,15 +149,6 @@
             }
         }
 
-        function isPathClear(startSq, endSq, dx, dy) {
-            let f = fileOf(startSq) + dx, r = rankOf(startSq) + dy;
-            while (f !== fileOf(endSq) || r !== rankOf(endSq)) {
-                if (pieceAt(idx(f,r))) return false;
-                f += dx; r += dy;
-            }
-            return true;
-        }
-
         function isValidMove(startSq, endSq) {
             if (startSq === endSq) return false;
             let p = pieceAt(startSq);
@@ -181,7 +171,6 @@
             if (p.toUpperCase() === 'N') return dirs.knight.some(d => d[0]===dx && d[1]===dy);
 
             if (p.toUpperCase() === 'K') {
-                // Normal king move
                 if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return true;
 
                 // Castling
@@ -195,7 +184,7 @@
                 if (!rook || rook.toUpperCase() !== 'R') return false;
                 if (isWhiteKing ? (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) : (dx > 0 ? blackRookRightMoved : blackRookLeftMoved)) return false;
 
-                // Path clear - only squares BETWEEN king and rook
+                // Path clear - squares BETWEEN king and rook
                 const step = dx > 0 ? 1 : -1;
                 for (let i = sf + step; i !== ef; i += step) {
                     if (pieceAt(idx(i, sr))) return false;
@@ -241,11 +230,10 @@
             board[endSq] = p;
             board[startSq] = null;
 
-            // Promotion
             if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
             if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
 
-            // Castling - move the rook
+            // Castling rook jump
             if (p.toUpperCase() === 'K') {
                 const sf = fileOf(startSq), ef = fileOf(endSq);
                 if (Math.abs(ef - sf) === 2) {
