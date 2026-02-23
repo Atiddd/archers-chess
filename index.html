@@ -3,23 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess v1.4 - Fixed Markers</title>
+    <title>Archers Chess v1.4 - Professional UI</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f0d9b5; color: #333; margin: 10px; }
-        canvas { border: 5px solid #5d3411; cursor: pointer; background: #deb887; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
-        h1 { color: #8b0000; margin: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
-        #status { font-size: 22px; font-weight: bold; margin: 15px; color: #444; height: 30px; }
-        select, button { font-size: 16px; padding: 8px 16px; margin: 5px; border-radius: 6px; cursor: pointer; border: 1px solid #8b4513; }
-        button { background: #8b4513; color: white; transition: 0.2s; }
-        button:hover { background: #a0522d; }
-        details { margin: 20px auto; max-width: 800px; text-align: left; border: 1px solid #b58863; padding: 15px; border-radius: 8px; background: #fff8e7; }
-        summary { font-size: 18px; cursor: pointer; color: #8b0000; font-weight: bold; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #edeadf; color: #2c1e12; margin: 10px; }
+        canvas { border: 6px solid #4e342e; cursor: pointer; background: #deb887; box-shadow: 0 12px 30px rgba(0,0,0,0.3); border-radius: 4px; }
+        h1 { color: #5d4037; margin: 10px; font-weight: 800; }
+        #status { font-size: 20px; font-weight: 600; margin: 15px; color: #795548; height: 30px; }
+        .controls { margin-bottom: 15px; }
+        select, button { font-size: 16px; padding: 10px 20px; margin: 5px; border-radius: 8px; cursor: pointer; border: 1px solid #8d6e63; }
+        button { background: #6d4c41; color: white; transition: background 0.3s ease; }
+        button:hover { background: #4e342e; }
+        details { margin: 20px auto; max-width: 700px; text-align: left; border: 1px solid #d7ccc8; padding: 15px; border-radius: 12px; background: #efebe9; }
+        summary { font-size: 18px; cursor: pointer; color: #5d4037; font-weight: bold; }
     </style>
 </head>
 <body>
     <h1>🏹 Archers Chess v1.4</h1>
-    <div>
-        <label for="aiLevel">AI Difficulty: </label>
+    <div class="controls">
+        <label for="aiLevel">AI: </label>
         <select id="aiLevel">
             <option value="easy">Easy</option>
             <option value="normal" selected>Normal</option>
@@ -31,8 +32,8 @@
 
     <details open>
         <summary>📜 Game Rules</summary>
-        <p><strong>Castling:</strong> Move King 2 squares toward a Rook. Path must be clear, and neither piece can have moved.</p>
-        <p><strong>Archer:</strong> Moves 3 squares (straight or diagonal), then jumps 1 square diagonally back. Captures only on the final square.</p>
+        <p><strong>Castling:</strong> Move King 2 squares toward a Rook (Files A or H). The path must be clear.</p>
+        <p><strong>Archer:</strong> Moves exactly 3 squares (straight or diagonal), then 1 square diagonally back (left or right). Captures only on the final square.</p>
     </details>
 
     <script>
@@ -107,8 +108,7 @@
             if (startSq === endSq) return false;
             let p = pieceAt(startSq);
             if (!p) return false;
-            let tp = pieceAt(endSq);
-            if (tp && sameSide(p, tp)) return false;
+            if (pieceAt(endSq) && sameSide(p, pieceAt(endSq))) return false;
 
             let sf = fileOf(startSq), sr = rankOf(startSq);
             let ef = fileOf(endSq), er = rankOf(endSq);
@@ -116,9 +116,9 @@
 
             if (p.toUpperCase() === 'P') {
                 let dir = isWhite(p) ? 1 : -1;
-                if (dx === 0 && dy === dir && !tp) return true;
-                if (dx === 0 && dy === 2*dir && sr === (isWhite(p)?1:6) && !tp && !pieceAt(idx(sf,sr+dir))) return true;
-                if (Math.abs(dx)===1 && dy===dir && tp) return true;
+                if (dx === 0 && dy === dir && !pieceAt(endSq)) return true;
+                if (dx === 0 && dy === 2*dir && sr === (isWhite(p)?1:6) && !pieceAt(endSq) && !pieceAt(idx(sf,sr+dir))) return true;
+                if (Math.abs(dx)===1 && dy===dir && pieceAt(endSq)) return true;
                 return false;
             }
 
@@ -128,7 +128,7 @@
                 if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return true;
                 if (dy !== 0 || Math.abs(dx) !== 2) return false;
                 if (isWhite(p) ? whiteKingMoved : blackKingMoved) return false;
-                const rookFile = dx > 0 ? 8 : 1; 
+                const rookFile = dx > 0 ? 8 : 1;
                 const rook = pieceAt(idx(rookFile, sr));
                 if (!rook || rook.toUpperCase() !== 'R') return false;
                 if (isWhite(p) ? (dx > 0 ? whiteRookRightMoved : whiteRookLeftMoved) : (dx > 0 ? blackRookRightMoved : blackRookLeftMoved)) return false;
@@ -140,16 +140,18 @@
             }
 
             if (p.toUpperCase() === 'A') {
-                const outDirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
-                for (let [odx, ody] of outDirs) {
+                const queenDirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
+                for (let [odx, ody] of queenDirs) {
                     let f3 = sf + odx*3, r3 = sr + ody*3;
                     if (!isOnBoard(f3,r3)) continue;
-                    if ((odx===0 || ody===0) && !isPathClear(startSq, idx(f3, r3), odx, ody)) {
-                        if (pieceAt(idx(sf+odx, sr+ody)) || pieceAt(idx(sf+odx*2, sr+ody*2))) continue;
+                    if ((odx===0 || ody===0) && !isPathClear(startSq, idx(f3,r3), odx, ody) && !(Math.abs(sf-f3)<=1 && Math.abs(sr-r3)<=1)) {
+                        let blocked = false;
+                        for(let step=1; step<3; step++) if(pieceAt(idx(sf+odx*step, sr+ody*step))) blocked = true;
+                        if(blocked) continue;
                     }
                     const backOffsets = [[-odx-ody, -ody+odx], [-odx+ody, -ody-odx]];
                     for (let [ox, oy] of backOffsets) {
-                        if (f3 + ox === ef && r3 + oy === er) return true;
+                        if (f3 + Math.sign(ox) === ef && r3 + Math.sign(oy) === er) return true;
                     }
                 }
                 return false;
@@ -167,25 +169,20 @@
         function makeMove(startSq, endSq) {
             let p = pieceAt(startSq);
             let sf = fileOf(startSq), ef = fileOf(endSq), r = rankOf(startSq);
-
             if (p.toUpperCase() === 'K' && Math.abs(ef - sf) === 2) {
                 const rookFromFile = ef > sf ? 8 : 1;
                 const rookToFile = ef > sf ? ef - 1 : ef + 1;
                 board[idx(rookToFile, r)] = board[idx(rookFromFile, r)];
                 board[idx(rookFromFile, r)] = null;
             }
-
             board[endSq] = p;
             board[startSq] = null;
-
             if (p === 'P' && rankOf(endSq) === 7) board[endSq] = 'Q';
             if (p === 'p' && rankOf(endSq) === 0) board[endSq] = 'q';
-
             if (p === 'K') whiteKingMoved = true;
             if (p === 'k') blackKingMoved = true;
             if (p === 'R') { if(sf===1) whiteRookLeftMoved = true; if(sf===8) whiteRookRightMoved = true; }
             if (p === 'r') { if(sf===1) blackRookLeftMoved = true; if(sf===8) blackRookRightMoved = true; }
-
             turn = turn === 'w' ? 'b' : 'w';
         }
 
@@ -194,28 +191,25 @@
             for(let r=7; r>=0; r--) {
                 for(let f=0; f<FILES; f++) {
                     let x = f * SQ, y = (7 - r) * SQ;
-                    ctx.fillStyle = ((f + r) % 2 === 0) ? '#f0d9b5' : '#b58863';
+                    let isLight = (f + r) % 2 === 0;
+                    ctx.fillStyle = isLight ? '#f0d9b5' : '#b58863';
                     ctx.fillRect(x, y, SQ, SQ);
 
-                    // --- Fixed Tile Markers ---
-                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                    ctx.font = 'bold 12px Arial';
-                    // Rank numbers on the left edge
-                    if (f === 0) {
-                        ctx.textAlign = 'left';
-                        ctx.fillText(r + 1, x + 2, y + 12);
-                    }
-                    // File letters on the bottom edge
-                    if (r === 0) {
-                        ctx.textAlign = 'right';
-                        ctx.fillText(fileLabels[f], x + SQ - 2, y + SQ - 4);
-                    }
+                    // --- Neat Coordinate Markers on Every Tile ---
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'top';
+                    // Use contrasting color for readability
+                    ctx.fillStyle = isLight ? 'rgba(139, 69, 19, 0.5)' : 'rgba(240, 217, 181, 0.6)';
+                    ctx.fillText(fileLabels[f] + (r + 1), x + 4, y + 4);
 
                     let p = pieceAt(idx(f,r));
                     if (p) {
                         ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
+                        ctx.shadowBlur = 2; ctx.shadowColor = "rgba(0,0,0,0.2)";
                         ctx.font = '46px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                         ctx.fillText(pieceSymbols[p], x + SQ/2, y + SQ/2 + 4);
+                        ctx.shadowBlur = 0; // Reset shadow for next drawings
                     }
                     if (selected === idx(f,r)) {
                         ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 4;
@@ -232,7 +226,6 @@
             const r = 7 - Math.floor((e.clientY - rect.top) / SQ);
             if (!isOnBoard(f,r)) return;
             const sq = idx(f,r);
-
             if (selected === null) {
                 let p = pieceAt(sq);
                 if (p && isWhite(p)) { selected = sq; drawBoard(); }
@@ -254,8 +247,7 @@
         function aiMove() {
             let moves = [];
             for (let s = 0; s < board.length; s++) {
-                let p = board[s];
-                if (p && !isWhite(p)) {
+                if (board[s] && !isWhite(board[s])) {
                     for (let t = 0; t < board.length; t++) {
                         if (isValidMove(s, t)) moves.push({from: s, to: t});
                     }
