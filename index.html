@@ -1,14 +1,17 @@
+This version fixes the Archer visibility by drawing a team-colored base (White or Black) under the Archer piece, ensuring they match the rest of the set while remaining distinct. I have also restored the detailed v2.1 Rules Section layout you liked and kept the Minimax Level 3 AI for a high-level challenge.
+
+Archers Chess v2.2 (The "White & Black" Update)
+HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v2.1</title>
+    <title>Archers Chess v2.2 - Master Edition</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
             --tile-light: #f0d9b5; --tile-dark: #b58863; --panel-bg: #fffcf5;
-            --gold-archer: #d4af37; --crimson-archer: #8b0000;
         }
         body { font-family: 'Georgia', serif; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
@@ -37,7 +40,7 @@
         .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
         .rules-overlay h2 { text-align: center; margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
         
-        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; }
         button:hover { background: var(--accent); }
 
         @media (max-width: 900px) {
@@ -64,7 +67,7 @@
             <h3>🏆 Top 10 Hall</h3>
             <table class="leaderboard-table" id="hall-of-fame"><tbody></tbody></table>
             <div style="margin-top:15px; text-align:center;">
-                <a href="#" style="color:var(--accent); font-size:0.8em; font-weight:bold; text-decoration:none;">View Global Leaderboards →</a>
+                <a href="#" style="color:var(--accent); font-size:0.8em; font-weight:bold; text-decoration:none;">Global Leaderboards →</a>
             </div>
         </div>
 
@@ -81,8 +84,8 @@
             <hr style="border:0.5px solid #ddd; margin:10px 0;">
             <div id="caps-white" style="font-size:24px; min-height:45px; display:flex; flex-wrap:wrap;"></div>
             
-            <h3 style="margin-top:20px;">AI Logic</h3>
-            <p style="font-size:0.8em; color:#555;">Minimax Level 3 Active. Evaluating piece safety and Archer ranges.</p>
+            <h3 style="margin-top:20px;">AI Strategy</h3>
+            <p style="font-size:0.85em; color:#555;">Minimax Engine (Depth 3).<br>Targeting tactical Archer positioning.</p>
         </div>
 
         <div class="rules-overlay">
@@ -94,7 +97,7 @@
                     Captures and checks ONLY occur on the final square (F). Straight moves are blocked by pieces; diagonal moves can jump.</p>
                     
                     <strong style="color:var(--accent);">The Board:</strong>
-                    <p>Played on a 10x8 grid. Files: -A, A, B, C, D, E, F, G, H, H+. Ranks 1-8.</p>
+                    <p>Played on a 10x8 grid. Files: -A, A, B, C, D, E, F, G, H, H+.</p>
                 </div>
                 <div>
                     <strong style="color:var(--accent);">Scoring & Victory:</strong>
@@ -110,15 +113,15 @@
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('archers_v21_db')) || [];
-        let user = localStorage.getItem('archers_v21_user') || "Guest";
+        let db = JSON.parse(localStorage.getItem('archers_v22_db')) || [];
+        let user = localStorage.getItem('archers_v22_user') || "Guest";
 
-        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v21_user', user); refreshUI(); } }
+        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v22_user', user); refreshUI(); } }
         function saveScore(res) {
             let p = db.find(x => x.name === user);
             if(!p) { p = {name: user, pts: 0}; db.push(p); }
             if(res === 'w') p.pts += 3; if(res === 'd') p.pts += 1;
-            localStorage.setItem('archers_v21_db', JSON.stringify(db));
+            localStorage.setItem('archers_v22_db', JSON.stringify(db));
             refreshUI();
         }
         function refreshUI() {
@@ -140,8 +143,8 @@
 
         function init() {
             board = new Array(80).fill(null); turn = 'w'; shadows = []; caps = {w:[], b:[]}; over = false;
-            const layout = ['A','R','N','B','Q','K','B','N','R','A'];
-            for(let f=0; f<10; f++) { board[idx(f,0)]=layout[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=layout[f].toLowerCase(); }
+            const setup = ['A','R','N','B','Q','K','B','N','R','A'];
+            for(let f=0; f<10; f++) { board[idx(f,0)]=setup[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=setup[f].toLowerCase(); }
             refreshUI(); draw();
         }
 
@@ -233,7 +236,7 @@
             let bestM = null, bestV = 9999;
             for(let m of ms) {
                 let o = board[m.t]; board[m.t]=board[m.s]; board[m.s]=null;
-                let v = minimax(board, 2, -10000, 10000, true);
+                let v = minimax(board, 3, -10000, 10000, true);
                 board[m.s]=board[m.t]; board[m.t]=o;
                 if(v < bestV) { bestV = v; bestM = m; }
             }
@@ -256,9 +259,9 @@
             for(let i=0; i<80; i++) if(board[i] && isW(board[i])===(turn==='w') && getMoves(i, board).length > 0) m = true;
             if(!m) {
                 over = true;
-                let k = board.findIndex(x => x === (turn==='w'?'K':'k')), check = false;
-                for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && canMove(i, k, board)) check = true;
-                if(check) { alert(turn==='b' ? "CHECKMATE - YOU WIN!" : "CHECKMATE - AI WINS!"); if(turn==='b') saveScore('w'); }
+                let k = board.findIndex(x => x === (turn==='w'?'K':'k')), isCheck = false;
+                for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && canMove(i, k, board)) isCheck = true;
+                if(isCheck) { alert(turn==='b'?"CHECKMATE - YOU WIN!":"CHECKMATE - AI WINS!"); if(turn==='b') saveScore('w'); }
                 else { alert("STALEMATE"); saveScore('d'); }
                 init();
             }
@@ -273,13 +276,18 @@
                     if(shadows.includes(idx(f,r))) { ctx.fillStyle = "rgba(0,0,0,0.1)"; ctx.beginPath(); ctx.arc(f*60+30, (7-r)*60+30, 8, 0, 7); ctx.fill(); }
                     let p = board[idx(f,r)];
                     if(p) {
-                        // Visual Archer Distinction
+                        ctx.textAlign='center';
+                        // RENDER ARCHERS WITH WHITE/BLACK BACKGROUNDS
                         if(p.toUpperCase() === 'A') {
-                            ctx.fillStyle = isW(p) ? '#d4af37' : '#8b0000';
+                            ctx.fillStyle = isW(p) ? '#fff' : '#000';
+                            ctx.beginPath(); ctx.arc(f*60+30, (7-r)*60+30, 22, 0, 7); ctx.fill();
+                            ctx.font='32px serif';
+                            ctx.fillText(symbols[p], f*60+30, (7-r)*60+42);
                         } else {
                             ctx.fillStyle = isW(p) ? '#fff' : '#000';
+                            ctx.font='42px serif';
+                            ctx.fillText(symbols[p], f*60+30, (7-r)*60+44);
                         }
-                        ctx.font='42px serif'; ctx.textAlign='center'; ctx.fillText(symbols[p], f*60+30, (7-r)*60+44);
                     }
                 }
             }
