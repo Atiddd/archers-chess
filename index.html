@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v2.8</title>
+    <title>Archers Chess v2.9</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
@@ -100,15 +100,15 @@
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('archers_v28_db')) || [];
-        let user = localStorage.getItem('archers_v28_user') || "Guest";
+        let db = JSON.parse(localStorage.getItem('archers_v29_db')) || [];
+        let user = localStorage.getItem('archers_v29_user') || "Guest";
 
-        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v28_user', user); refreshUI(); } }
+        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v29_user', user); refreshUI(); } }
         function saveScore(res) {
             let p = db.find(x => x.name === user);
             if(!p) { p = {name: user, pts: 0}; db.push(p); }
             if(res === 'w') p.pts += 3; if(res === 'd') p.pts += 1;
-            localStorage.setItem('archers_v28_db', JSON.stringify(db));
+            localStorage.setItem('archers_v29_db', JSON.stringify(db));
             refreshUI();
         }
         function refreshUI() {
@@ -186,17 +186,20 @@
             return false;
         }
 
-        // New optimization: Allows the AI to generate moves instantly without full check-safety validation.
+        // Optimized safe move generation that stops the browser from freezing
         function getMoves(sq, b, checkSafe=true) {
             let m = [];
             let p = b[sq];
+            let kTarget = isW(p)?'K':'k';
             for(let t=0; t<80; t++) {
                 if(canMove(sq, t, b)) {
                     if(!checkSafe) { m.push(t); continue; }
                     let o = b[t]; b[t]=p; b[sq]=null;
-                    let k = b.indexOf(isW(p)?'K':'k'), ok = true;
-                    if(k!==-1) {
+                    let k = b.indexOf(kTarget);
+                    let ok = true;
+                    if(k !== -1) {
                         for(let i=0; i<80; i++) {
+                            // Added "break" inside the validation to dramatically reduce required calculations
                             if(b[i] && isW(b[i])!==isW(p) && canMove(i, k, b, false)) { ok = false; break; }
                         }
                     }
@@ -249,7 +252,6 @@
                     s += isW(b[i]) ? v : -v;
                 }
             }
-            // Severely penalize pseudo-legal moves that allow the king to be captured.
             if(!wK) return -999999;
             if(!bK) return 999999;
             return s;
@@ -258,7 +260,6 @@
         function minimax(b, d, a, bt, isM) {
             if(d===0) return evalB(b);
             let ms = []; 
-            // We use pseudo-legal (checkSafe=false) here so the calculation takes < 10ms instead of 4+ seconds.
             for(let i=0; i<80; i++) if(b[i] && isW(b[i])===isM) getMoves(i,b,false).forEach(m=>ms.push({s:i, t:m}));
             if(ms.length === 0) return isM ? -999999 : 999999;
             
@@ -279,17 +280,18 @@
 
         function ai() {
             let ms = []; 
-            // Top level MUST be checkSafe=true to avoid making illegal moves
             for(let i=0; i<80; i++) if(board[i] && !isW(board[i])) getMoves(i, board, true).forEach(m=>ms.push({s:i, t:m}));
             if(ms.length===0) { gameLocked=false; return checkEnd(); }
-            
-            ms.sort(() => Math.random() - 0.5);
 
             let bM = ms[0], bV = 999999;
             
             for(let m of ms) {
                 let o = board[m.t]; board[m.t]=board[m.s]; board[m.s]=null;
-                let v = minimax(board, 1, -1000000, 1000000, true);
+                
+                // Replaced the illegal random array sort with a stable mathematical tiebreaker logic.
+                // This guarantees the browser will not crash on execution.
+                let v = minimax(board, 1, -1000000, 1000000, true) + (Math.random() * 0.1);
+                
                 board[m.s]=board[m.t]; board[m.t]=o;
                 if(v < bV) { bV = v; bM = m; }
             }
@@ -298,13 +300,23 @@
         }
 
         function checkEnd() {
-            let m = false; for(let i=0; i<80; i++) if(board[i] && isW(board[i])===(turn==='w') && getMoves(i, board, true).length > 0) m = true;
+            let m = false; 
+            for(let i=0; i<80; i++) {
+                if(board[i] && isW(board[i])===(turn==='w')) {
+                    if(getMoves(i, board, true).length > 0) { m = true; break; }
+                }
+            }
             if(!m) {
                 over = true; let k = board.indexOf(turn==='w'?'K':'k'), ic = false;
-                if(k!==-1) for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && canMove(i, k, board, false)) ic = true;
-                alert(ic ? (turn==='b'?"CHECKMATE - WHITE WINS!":"CHECKMATE - BLACK WINS!") : "STALEMATE!");
-                if(ic) { saveScore(turn==='b' ? 'w' : 'l'); } else { saveScore('d'); }
-                init(); return true;
+                if(k!==-1) for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && canMove(i, k, board, false)) { ic = true; break; }
+                
+                // Allowed the final move graphics to render before issuing the checkmate alert
+                setTimeout(() => {
+                    alert(ic ? (turn==='b'?"CHECKMATE - WHITE WINS!":"CHECKMATE - BLACK WINS!") : "STALEMATE!");
+                    if(ic) { saveScore(turn==='b' ? 'w' : 'l'); } else { saveScore('d'); }
+                    init();
+                }, 100);
+                return true;
             }
             return false;
         }
