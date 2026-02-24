@@ -1,9 +1,23 @@
+To make the username system more user-friendly, we can shift from a "blocking" login screen to a seamless, auto-generating profile system.
+
+In this updated version:
+
+Guest by Default: The game starts immediately as "Guest". No prompt blocks the board.
+
+
+Persistent Auto-Login: The game remembers the last player on that browser and logs them in automatically.
++1
+
+One-Click Rename: Users can change their name at any time via a small "Edit" button in the sidebar rather than a startup popup.
+
+Archers Chess v1.4 (Frictionless UI Edition)
+HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess v1.3 - Global Leaderboard</title>
+    <title>Archers Chess v1.4 - Frictionless UI</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
@@ -12,19 +26,9 @@
         body { font-family: 'Segoe UI', serif; text-align: center; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; }
         h1 { color: var(--primary); margin: 0; font-size: 2.2em; text-transform: uppercase; letter-spacing: 2px; }
         
-        /* Login Overlay */
-        #login-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(237, 234, 223, 0.95); display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; z-index: 200;
-        }
-        .login-box { background: white; padding: 40px; border: 4px solid var(--primary); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        .login-box input { padding: 10px; font-size: 1.1em; border: 2px solid #ddd; border-radius: 4px; margin-bottom: 15px; width: 250px; }
-        
-        /* Layout */
         .game-container { display: flex; justify-content: center; align-items: flex-start; gap: 15px; flex-wrap: wrap; margin-top: 5px; }
         #board-wrapper { position: relative; }
-        canvas { border: 8px solid var(--primary); cursor: pointer; background: #deb887; border-radius: 4px; }
+        canvas { border: 8px solid var(--primary); cursor: pointer; background: #deb887; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         
         #game-over-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -32,115 +36,111 @@
             flex-direction: column; justify-content: center; align-items: center; z-index: 100;
         }
 
-        /* Panels */
         .side-panel { width: 220px; background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 12px; text-align: left; }
-        .side-panel h3 { margin-top: 0; font-size: 1em; border-bottom: 2px solid var(--primary); padding-bottom: 5px; color: var(--primary); text-transform: uppercase; }
+        .side-panel h3 { margin-top: 0; font-size: 0.9em; border-bottom: 2px solid var(--primary); padding-bottom: 5px; color: var(--primary); text-transform: uppercase; }
         
-        /* Leaderboard Table */
         .leaderboard-table { width: 100%; font-size: 0.85em; border-collapse: collapse; margin-top: 10px; }
-        .leaderboard-table th { text-align: left; border-bottom: 1px solid var(--primary); color: var(--primary); }
         .leaderboard-table td { padding: 4px 0; border-bottom: 1px solid #eee; }
         .current-user-row { background: #fff9c4; font-weight: bold; }
 
-        .capture-group { height: 100px; font-size: 24px; overflow-y: auto; }
+        .profile-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        #display-name { font-weight: bold; color: var(--accent); overflow: hidden; text-overflow: ellipsis; }
+        
         #status { font-size: 22px; font-weight: bold; margin: 10px; height: 32px; color: var(--primary); }
-        button { font-size: 14px; padding: 8px 18px; border-radius: 4px; cursor: pointer; border: none; background: var(--primary); color: white; font-weight: bold; }
+        button { font-size: 13px; padding: 6px 12px; border-radius: 4px; cursor: pointer; border: none; background: var(--primary); color: white; font-weight: bold; }
+        .btn-small { padding: 2px 6px; font-size: 10px; background: #795548; }
     </style>
 </head>
 <body>
 
-    <div id="login-overlay">
-        <div class="login-box">
-            <h2 style="color: var(--primary); margin-top: 0;">Player Registry</h2>
-            <p>Enter your username to play or switch accounts.</p>
-            <input type="text" id="username-input" placeholder="Enter Name..." maxlength="12"><br>
-            <button onclick="loginUser()">Join Game</button>
-        </div>
-    </div>
-
     <h1>🏹 Archers Chess</h1>
-    <div style="font-style: italic; color: #795548; font-size: 0.9em; margin-bottom: 10px;">Created by John Patrick Read [cite: 9]</div>
+    <div style="font-style: italic; color: #795548; font-size: 0.9em; margin-bottom: 10px;">Created by John Patrick Read</div>
 
     <div id="status">Your Turn</div>
 
     <div class="game-container">
         <div class="side-panel">
+            <div class="profile-area">
+                <span id="display-name">Guest</span>
+                <button class="btn-small" onclick="renameUser()">Edit Name</button>
+            </div>
+            
             <h3>🏆 Hall of Fame</h3>
             <table class="leaderboard-table" id="leaderboard-body">
-                <thead>
-                    <tr><th>Player</th><th>W</th><th>L</th><th>D</th></tr>
-                </thead>
-                <tbody>
-                    </tbody>
+                <tbody></tbody>
             </table>
-            <button style="margin-top:15px; width:100%; font-size:11px;" onclick="showLogin()">Switch Player</button>
         </div>
 
         <div id="board-wrapper">
             <canvas id="board" width="600" height="480"></canvas>
             <div id="game-over-overlay">
                 <h2 id="win-message">YOU WIN!</h2>
-                <p>Checkmate - Game Over [cite: 36]</p>
                 <button onclick="init()">Play Again</button>
             </div>
         </div>
 
         <div class="side-panel">
-            <h3>Captured Pieces</h3>
-            <div id="black-captures" class="capture-group"></div>
+            <h3>Captured</h3>
+            <div id="black-captures" style="font-size:24px; min-height:40px;"></div>
             <hr>
-            <div id="white-captures" class="capture-group"></div>
-            <p style="font-size: 0.8em; margin-top: 20px;">
+            <div id="white-captures" style="font-size:24px; min-height:40px;"></div>
+            <p style="font-size: 0.75em; color: #666; margin-top: 15px;">
                 Board: 10x8 [cite: 19]<br>
-                Files: -A to H+ [cite: 60]
+                Archer ($A$): 3 Out, 1 Return [cite: 24, 27, 31]
             </p>
         </div>
     </div>
 
     <script>
-        // --- Leaderboard System ---
-        let allPlayers = []; // Array of {name, wins, losses, draws}
-        let currentPlayerName = "";
+        // --- Frictionless Profile System ---
+        let allPlayers = [];
+        let currentPlayerName = "Guest";
 
-        function loadLeaderboard() {
-            const saved = localStorage.getItem('archers_chess_leaderboard');
-            allPlayers = saved ? JSON.parse(saved) : [];
-            renderLeaderboard();
-        }
+        function setupUser() {
+            const savedBoard = localStorage.getItem('archers_chess_leaderboard');
+            const savedLastUser = localStorage.getItem('archers_chess_last_user');
+            
+            allPlayers = savedBoard ? JSON.parse(savedBoard) : [];
+            currentPlayerName = savedLastUser || "Guest";
 
-        function loginUser() {
-            const name = document.getElementById('username-input').value.trim();
-            if (!name) return;
-            
-            currentPlayerName = name;
-            let player = allPlayers.find(p => p.name.toLowerCase() === name.toLowerCase());
-            
-            if (!player) {
-                player = { name: name, wins: 0, losses: 0, draws: 0 };
-                allPlayers.push(player);
+            // If "Guest" doesn't exist in leaderboard, create it
+            if (!allPlayers.find(p => p.name === currentPlayerName)) {
+                allPlayers.push({ name: currentPlayerName, wins: 0, losses: 0, draws: 0 });
             }
-            
             saveData();
-            document.getElementById('login-overlay').style.display = 'none';
             renderLeaderboard();
         }
 
-        function showLogin() { document.getElementById('login-overlay').style.display = 'flex'; }
+        function renameUser() {
+            const newName = prompt("Enter your name:", currentPlayerName);
+            if (!newName || newName.trim() === "" || newName === currentPlayerName) return;
+            
+            const trimmed = newName.trim().substring(0, 12);
+            // Check if existing
+            let existing = allPlayers.find(p => p.name.toLowerCase() === trimmed.toLowerCase());
+            if (!existing) {
+                existing = { name: trimmed, wins: 0, losses: 0, draws: 0 };
+                allPlayers.push(existing);
+            }
+            currentPlayerName = existing.name;
+            saveData();
+            renderLeaderboard();
+        }
 
         function saveData() {
             localStorage.setItem('archers_chess_leaderboard', JSON.stringify(allPlayers));
+            localStorage.setItem('archers_chess_last_user', currentPlayerName);
         }
 
         function renderLeaderboard() {
-            // Sort by wins descending
+            document.getElementById('display-name').textContent = currentPlayerName;
             allPlayers.sort((a, b) => b.wins - a.wins);
             const tbody = document.querySelector('#leaderboard-body tbody');
             tbody.innerHTML = "";
-            
-            allPlayers.forEach(p => {
+            allPlayers.slice(0, 5).forEach(p => { // Show top 5
                 const row = document.createElement('tr');
                 if (p.name === currentPlayerName) row.className = "current-user-row";
-                row.innerHTML = `<td>${p.name}</td><td>${p.wins}</td><td>${p.losses}</td><td>${p.draws}</td>`;
+                row.innerHTML = `<td>${p.name}</td><td>${p.wins}W</td><td>${p.losses}L</td>`;
                 tbody.appendChild(row);
             });
         }
@@ -149,37 +149,35 @@
             let player = allPlayers.find(p => p.name === currentPlayerName);
             if (player) {
                 if (result === 'win') player.wins++;
-                if (result === 'loss') player.losses++;
-                if (result === 'draw') player.draws++;
+                else if (result === 'loss') player.losses++;
+                else if (result === 'draw') player.draws++;
                 saveData();
                 renderLeaderboard();
             }
         }
 
-        // --- Game Logic (Consolidated) ---
+        // --- Core Engine (Archer Logic) ---
         const canvas = document.getElementById('board');
         const ctx = canvas.getContext('2d');
-        const SQ = 60; const FILES = 10; const RANKS = 8;
-        const pieceSymbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹','k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🏹' };
-        
-        let board = new Array(FILES * RANKS).fill(null);
-        let turn = 'w', gameOver = false, selected = null, captures = { w: [], b: [] };
+        const SQ = 60, FILES = 10, RANKS = 8;
+        const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹','k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🏹' };
+        let board = [], turn = 'w', gameOver = false, selected = null, captures = { w: [], b: [] };
 
         function idx(f, r) { return f * RANKS + r; }
         function isWhite(p) { return p && p === p.toUpperCase(); }
 
         function init() {
-            board.fill(null); captures = { w: [], b: [] }; gameOver = false; turn = 'w'; selected = null;
+            board = new Array(FILES * RANKS).fill(null);
+            captures = { w: [], b: [] }; gameOver = false; turn = 'w'; selected = null;
             const setup = ['A','R','N','B','Q','K','B','N','R','A'];
             for(let f=0; f<FILES; f++) {
                 board[idx(f,0)] = setup[f]; board[idx(f,1)] = 'P';
                 board[idx(f,6)] = 'p'; board[idx(f,7)] = setup[f].toLowerCase();
             }
             document.getElementById('game-over-overlay').style.display = 'none';
-            updateUI(); drawBoard();
+            drawBoard(); updateUI();
         }
 
-        // Standard Chess + Archer Logic 
         function validateMoveBasic(s, t) {
             let p = board[s], tp = board[t];
             if (!p || (tp && isWhite(p) === isWhite(tp))) return false;
@@ -193,26 +191,27 @@
                 if (Math.abs(dx)===1 && dy===dir && tp) return true;
                 return false;
             }
-            if (type === 'N') return [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]].some(d => d[0]===dx && d[1]===dy);
             if (type === 'K') return Math.max(Math.abs(dx), Math.abs(dy)) <= 1;
+            if (type === 'N') return [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]].some(d => d[0]===dx && d[1]===dy);
             
-            if (type === 'A') {
+            if (type === 'A') { // Archer Logic: 3 out, 1 return [cite: 27, 31]
                 const qd = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
                 for (let [ox, oy] of qd) {
                     let f3 = sf+ox*3, r3 = sr+oy*3;
                     if (f3<0||f3>=FILES||r3<0||r3>=RANKS) continue;
+                    // Straight moves blocked by pieces [cite: 28, 103, 104]
                     if ((ox===0 || oy===0) && (board[idx(sf+ox, sr+oy)] || board[idx(sf+ox*2, sr+oy*2)])) continue;
                     const bOffsets = [[-ox-oy, -oy+ox], [-ox+oy, -oy-ox]];
                     for (let [bx, by] of bOffsets) if (f3 + Math.sign(bx) === ef && r3 + Math.sign(by) === er) return true;
                 }
                 return false;
             }
-            // Sliding pieces
+
             let slides = type==='R'?[[0,1],[0,-1],[1,0],[-1,0]]:type==='B'?[[1,1],[1,-1],[-1,1],[-1,-1]]:[[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
             for (let [dxs, dys] of slides) {
                 if (dxs*dy === dys*dx && Math.sign(dxs)===Math.sign(dx) && Math.sign(dys)===Math.sign(dy)) {
-                    let curF = sf+dxs, curR = sr+dys;
-                    while(curF!==ef || curR!==er) { if(board[idx(curF,curR)]) return false; curF+=dxs; curR+=dys; }
+                    let cf = sf+dxs, cr = sr+dys;
+                    while(cf!==ef || cr!==er) { if(board[idx(cf,cr)]) return false; cf+=dxs; cr+=dys; }
                     return true;
                 }
             }
@@ -251,7 +250,6 @@
             board[t] = p; board[s] = null;
             if (p === 'P' && t % RANKS === 7) board[t] = 'Q';
             if (p === 'p' && t % RANKS === 0) board[t] = 'q';
-            
             turn = turn === 'w' ? 'b' : 'w';
             updateUI(); drawBoard();
 
@@ -268,15 +266,13 @@
                 if (check) {
                     if (turn === 'w') { document.getElementById('win-message').textContent = "AI WINS!"; updateStats('loss'); }
                     else { document.getElementById('win-message').textContent = "YOU WIN!"; updateStats('win'); }
-                } else {
-                    document.getElementById('win-message').textContent = "STALEMATE"; updateStats('draw');
-                }
+                } else { document.getElementById('win-message').textContent = "STALEMATE"; updateStats('draw'); }
             }
         }
 
         function updateUI() {
-            document.getElementById('white-captures').innerHTML = "AI:<br>" + captures.w.map(p => pieceSymbols[p]).join('');
-            document.getElementById('black-captures').innerHTML = "YOU:<br>" + captures.b.map(p => pieceSymbols[p]).join('');
+            document.getElementById('white-captures').textContent = captures.w.map(p => symbols[p]).join('');
+            document.getElementById('black-captures').textContent = captures.b.map(p => symbols[p]).join('');
             document.getElementById('status').textContent = turn === 'w' ? "Your Turn" : "AI Thinking...";
         }
 
@@ -284,16 +280,16 @@
             ctx.clearRect(0,0,600,480);
             for(let r=7; r>=0; r--) {
                 for(let f=0; f<FILES; f++) {
-                    let x = f*SQ, y = (7-r)*SQ;
+                    let x = f*60, y = (7-r)*60;
                     ctx.fillStyle = (f+r)%2===0 ? '#f0d9b5' : '#b58863';
-                    ctx.fillRect(x,y,SQ,SQ);
+                    ctx.fillRect(x,y,60,60);
                     let p = board[idx(f,r)];
                     if (p) {
                         ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
                         ctx.font = '46px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                        ctx.fillText(pieceSymbols[p], x+SQ/2, y+SQ/2+4);
+                        ctx.fillText(symbols[p], x+30, y+34);
                     }
-                    if (selected === idx(f,r)) { ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 4; ctx.strokeRect(x+2,y+2,SQ-4,SQ-4); }
+                    if (selected === idx(f,r)) { ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 4; ctx.strokeRect(x+2,y+2,56,56); }
                 }
             }
         }
@@ -301,35 +297,26 @@
         canvas.addEventListener('click', e => {
             if (gameOver || turn === 'b') return;
             const rect = canvas.getBoundingClientRect();
-            const f = Math.floor((e.clientX-rect.left)/SQ), r = 7-Math.floor((e.clientY-rect.top)/SQ);
+            const f = Math.floor((e.clientX-rect.left)/60), r = 7-Math.floor((e.clientY-rect.top)/60);
             const sq = idx(f,r);
-            if (selected === null) {
-                if (board[sq] && isWhite(board[sq])) { selected = sq; drawBoard(); }
-            } else {
-                if (getValidMoves(selected).includes(sq)) {
-                    makeMove(selected, sq);
-                    if (!gameOver) setTimeout(aiMove, 600);
-                }
-                selected = null; drawBoard();
-            }
+            if (selected === null) { if (board[sq] && isWhite(board[sq])) { selected = sq; drawBoard(); } }
+            else { if (getValidMoves(selected).includes(sq)) { makeMove(selected, sq); if (!gameOver) setTimeout(aiMove, 600); } selected = null; drawBoard(); }
         });
 
         function aiMove() {
-            if (gameOver) return;
-            let all = [];
+            let moves = [];
             for (let i=0; i<board.length; i++) {
                 if (board[i] && !isWhite(board[i])) {
-                    let moves = getValidMoves(i);
-                    moves.forEach(m => all.push({f: i, t: m}));
+                    getValidMoves(i).forEach(m => moves.push({f: i, t: m}));
                 }
             }
-            if (all.length > 0) {
-                let m = all[Math.floor(Math.random()*all.length)];
+            if (moves.length > 0) {
+                let m = moves[Math.floor(Math.random()*moves.length)];
                 makeMove(m.f, m.t);
             }
         }
 
-        loadLeaderboard();
+        setupUser();
         init();
     </script>
 </body>
