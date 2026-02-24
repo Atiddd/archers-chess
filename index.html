@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v6.9</title>
+    <title>Archers Chess v7.0</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
-            --tile-light: #f0d9b5; --tile-dark: #b58863; --panel-bg: #fffcf5;
+            --panel-bg: #fffcf5;
         }
-        html, body { overflow-x: hidden; width: 100%; -webkit-overflow-scrolling: touch; }
+        /* Mobile scrolling restored, layout preserved */
+        html, body { overflow-x: hidden; width: 100%; height: 100%; -webkit-overflow-scrolling: touch; }
         body { font-family: 'Georgia', serif; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
         header { text-align: center; margin-bottom: 15px; }
@@ -25,10 +26,12 @@
         .leaderboard-table { width: 100%; font-size: 0.85em; border-collapse: collapse; }
         .leaderboard-table tr:nth-child(even) { background: #f9f5eb; }
 
-        #board-center { display: flex; flex-direction: column; align-items: center; }
+        #board-center { display: flex; flex-direction: column; align-items: center; width: 100%; }
         #status { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; text-align: center; }
         
-        canvas { border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; touch-action: none; cursor: grab; max-width: 100%; height: auto; }
+        /* Only canvas blocks touch actions so scrolling works everywhere else */
+        canvas { border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; touch-action: none; cursor: grab; }
+        canvas:active { cursor: grabbing; }
 
         .move-history { background: white; border: 1px solid #ccc; border-radius: 4px; padding: 5px; height: 180px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.9em; margin-bottom: 15px; }
         .move-row { display: flex; padding: 2px 0; border-bottom: 1px solid #f0f0f0; }
@@ -40,12 +43,15 @@
         .rules-overlay h2 { text-align: center; margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
         
         select, button { width: 100%; padding: 8px; font-size: 0.95rem; font-family: inherit; margin-top: 5px; cursor: pointer; border-radius: 4px; border: 1px solid var(--primary); }
-        button { background: var(--primary); color: white; font-weight: bold; border: none; padding: 10px; }
+        button { background: var(--primary); color: white; font-weight: bold; border: none; padding: 10px; transition: background 0.2s; }
+        button:hover { background: var(--accent); }
 
+        /* Perfect Mobile Override */
         @media (max-width: 1000px) {
             .game-layout { display: flex; flex-direction: column; }
             .side-panel { width: calc(100% - 30px); order: 2; margin-bottom: 10px; }
             #board-center { order: 1; margin-bottom: 10px; }
+            canvas { width: 95vw !important; height: auto !important; border-width: 6px; }
             .rules-grid { grid-template-columns: 1fr; gap: 20px; }
             .rules-overlay { order: 3; }
         }
@@ -124,31 +130,35 @@
     </div>
 
     <script>
-        // --- 1. AUDIO ---
+        // --- 1. MEMORY-SAFE AUDIO (Single Instance) ---
+        let audioCtx;
         function playSound(t) {
             try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
                 const o = audioCtx.createOscillator(), g = audioCtx.createGain();
                 o.connect(g); g.connect(audioCtx.destination);
                 let n = audioCtx.currentTime;
                 if(t==='move'){ o.frequency.setValueAtTime(300,n); g.gain.exponentialRampToValueAtTime(0.01,n+0.1); o.start(); o.stop(n+0.1); }
                 else if(t==='capture'){ o.type='square'; o.frequency.setValueAtTime(200,n); g.gain.exponentialRampToValueAtTime(0.01,n+0.2); o.start(); o.stop(n+0.2); }
                 else if(t==='check'){ o.type='triangle'; o.frequency.setValueAtTime(500,n); g.gain.exponentialRampToValueAtTime(0.01,n+0.3); o.start(); o.stop(n+0.3); }
-                setTimeout(() => audioCtx.close(), 500);
-            } catch(e){}
+            } catch(e) {}
         }
 
-        // --- 2. DATA ---
+        // --- 2. USER DB ---
         let db = []; let user = "Guest";
-        try { db = JSON.parse(localStorage.getItem('archers_v69_db')) || []; user = localStorage.getItem('archers_v69_user') || "Guest"; } catch(e) {}
-        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v69_user', user); refreshUI(); } }
+        try { db = JSON.parse(localStorage.getItem('archers_v7_db')) || []; user = localStorage.getItem('archers_v7_user') || "Guest"; } catch(e) {}
+        
+        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v7_user', user); refreshUI(); } }
+        
         function saveScore(res) {
             let p = db.find(x => x.name === user); if(!p) { p = {name: user, pts: 0}; db.push(p); }
             let diff = parseInt(document.getElementById('ai-diff').value);
             if(res === 'w') p.pts += (diff === 1 ? 1 : diff === 2 ? 3 : 5);
             else if(res === 'd') p.pts += (diff === 2 ? 1 : diff === 3 ? 2 : 0);
-            localStorage.setItem('archers_v69_db', JSON.stringify(db)); refreshUI();
+            localStorage.setItem('archers_v7_db', JSON.stringify(db)); refreshUI();
         }
+
         function refreshUI() {
             document.getElementById('u-name').textContent = user;
             let p = db.find(x => x.name === user) || {pts:0};
@@ -157,12 +167,16 @@
             document.getElementById('hall-of-fame').innerHTML = sorted.map((s,i) => `<tr><td>${i+1}. ${s.name}</td><td style="text-align:right"><b>${s.pts}</b></td></tr>`).join('');
         }
 
-        // --- 3. CORE GAME ---
-        const canvas = document.getElementById('board'), ctx = canvas.getContext('2d', { alpha: false });
-        const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':"🏹", 'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':"🏹" };
+        // --- 3. GRAPHICS & STATE ---
+        const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
+        // REVERTED TO CLASSIC B&W TEXT SYMBOL FOR ARCHER
+        const archerSym = "\u{1F3F9}\u{FE0E}"; 
+        const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A': archerSym, 'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a': archerSym };
         const files = ["-A","A","B","C","D","E","F","G","H","H+"];
+        
         let board = Array(80).fill(null), turn = 'w', sel = null, gameActive = false, validMoves = [], caps = {w:[], b:[]}, moved = { wK:false, bK:false };
         let moveHistory = [], dragging = false, dragOrigin = null, pointerX = 0, pointerY = 0;
+        let pendingDraw = false;
 
         function idx(f, r) { return f * 8 + r; }
         function isW(p) { return p === p.toUpperCase(); }
@@ -172,11 +186,12 @@
             moved = { wK:false, bK:false }; moveHistory = []; document.getElementById('move-history').innerHTML = "";
             const setup = ['A','R','N','B','Q','K','B','N','R','A'];
             for(let f=0; f<10; f++) { board[idx(f,0)]=setup[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=setup[f].toLowerCase(); }
-            refreshUI(); updateStatus("Your Turn (White)"); draw();
+            refreshUI(); updateStatus("Your Turn (White)"); requestDraw();
         }
 
-        function concede() { if(gameActive) { gameActive = false; updateStatus("Conceded - BLACK WINS!"); saveScore('l'); draw(); } }
+        function concede() { if(gameActive) { gameActive = false; updateStatus("Conceded - BLACK WINS!"); saveScore('l'); requestDraw(); } }
 
+        // --- 4. ENGINE (WITH STRICT ARCHER BOUNDARIES) ---
         function getPseudoMoves(b, i, attacksOnly = false) {
             let p = b[i]; if (!p) return [];
             let isWhite = isW(p), type = p.toUpperCase(), f = Math.floor(i/8), r = i%8, mvs = [];
@@ -197,8 +212,8 @@
                     let block = false;
                     for(let s=1; s<=3; s++) {
                         let cf = f+ox*s, cr = r+oy*s;
-                        if(cf<0||cf>9||cr<0||cr>7) { block=true; break; }
-                        if((ox===0||oy===0) && b[idx(cf,cr)]) { block=true; break; }
+                        if(cf<0||cf>9||cr<0||cr>7) { block=true; break; } // No off-board
+                        if((ox===0||oy===0) && b[idx(cf,cr)]) { block=true; break; } // Blocked
                     }
                     if(block) continue;
                     let f3=f+ox*3, r3=r+oy*3;
@@ -251,7 +266,7 @@
             let note=(p.toUpperCase()==='P'?'':p.toUpperCase())+(tp?'x':'')+files[Math.floor(t/8)]+(t%8+1);
             if(isWT) moveHistory.push({w:note+(ic?'+':''), b:''}); else moveHistory[moveHistory.length-1].b=note+(ic?'+':'');
             updateHistoryUI(); if(ic) playSound('check'); else if(tp) playSound('capture'); else playSound('move');
-            draw(); if(getAllLegalMoves(board,turn==='w').length===0) return finalizeGame();
+            requestDraw(); if(getAllLegalMoves(board,turn==='w').length===0) return finalizeGame();
             if(turn==='b'){ updateStatus("AI Thinking..."); setTimeout(executeAI, 150); } else updateStatus("Your Turn");
         }
 
@@ -261,12 +276,25 @@
             h.scrollTop=h.scrollHeight;
         }
 
-        function finalizeGame() { gameActive=false; let k=board.indexOf(turn==='w'?'K':'k'); let ic=getAttackMap(board,turn==='b')[k]; updateStatus(ic?(turn==='w'?"BLACK WINS!":"WHITE WINS!"):"DRAW!"); saveScore(ic?(turn==='b'?'w':'l'):'d'); draw(); }
+        function finalizeGame() { gameActive=false; let k=board.indexOf(turn==='w'?'K':'k'); let ic=getAttackMap(board,turn==='b')[k]; updateStatus(ic?(turn==='w'?"BLACK WINS!":"WHITE WINS!"):"DRAW!"); saveScore(ic?(turn==='b'?'w':'l'):'d'); requestDraw(); }
         function updateStatus(msg) { const s=document.getElementById('status'); s.textContent=msg; s.className=msg.includes("AI")?"ai-thinking":(msg.includes("!")?"check-alert":""); }
 
-        function draw() {
-            // RESTORED GRID DRAWING
-            ctx.fillStyle = '#2c1e12'; ctx.fillRect(0,0,660,520);
+        // --- 5. RENDERER (THROTTLED FOR IOS) ---
+        function requestDraw() {
+            if (!pendingDraw) {
+                pendingDraw = true;
+                requestAnimationFrame(() => { drawBoard(); pendingDraw = false; });
+            }
+        }
+
+        function drawBoard() {
+            ctx.clearRect(0,0,660,520);
+            
+            // Re-added the beautiful board layout and coordinates
+            ctx.fillStyle = "#2c1e12"; ctx.font = "bold 13px Georgia";
+            for(let f=0; f<10; f++) ctx.fillText(files[f], 30 + f*60 + 20, 510);
+            for(let r=0; r<8; r++) ctx.fillText(8-r, 10, 20 + r*60 + 35);
+
             for(let f=0;f<10;f++){
                 for(let r=0;r<8;r++){
                     let sq=idx(f,r);
@@ -279,10 +307,10 @@
                     }
                     
                     let p=board[sq];
-                    if(p&&(!dragging||sq!==dragOrigin)){
+                    if(p && (!dragging || sq!==dragOrigin)){
                         ctx.textAlign='center';
-                        ctx.fillStyle=isW(p)?'#fff':'#000';
-                        ctx.font=p.toUpperCase()==='A'?'36px serif':'42px serif';
+                        ctx.fillStyle = isW(p) ? '#fff' : '#000'; // Black & White
+                        ctx.font = p.toUpperCase()==='A' ? '36px serif' : '42px serif';
                         ctx.fillText(symbols[p], 30+f*60+30, (7-r)*60+54);
                     }
                 }
@@ -297,17 +325,33 @@
             document.getElementById('caps-black').textContent=caps.b.map(x=>symbols[x]).join('');
         }
 
-        function getCoords(e) { const r=canvas.getBoundingClientRect(); return { x:( (e.clientX || (e.touches && e.touches[0].clientX)) - r.left) * (660/r.width), y:( (e.clientY || (e.touches && e.touches[0].clientY)) - r.top) * (520/r.height) }; }
+        // --- 6. INPUT ---
+        function getCoords(e) { 
+            const r=canvas.getBoundingClientRect(); 
+            return { x: (e.clientX - r.left) * (660/r.width), y: (e.clientY - r.top) * (520/r.height) }; 
+        }
 
         canvas.addEventListener('pointerdown',(e)=>{
-            if(!gameActive||turn==='b')return; const c=getCoords(e); pointerX=c.x; pointerY=c.y;
+            if(!gameActive||turn==='b')return; 
+            const c=getCoords(e); pointerX=c.x; pointerY=c.y;
             const f=Math.floor((c.x-30)/60), r=7-Math.floor((c.y-10)/60); const sq=idx(f,r);
             if(sel!==null&&validMoves.some(m=>m.t===sq)){ processMove(sel,sq,validMoves.find(m=>m.t===sq).isCastle); return; }
             if(board[sq]&&isW(board[sq])){ sel=sq; dragging=true; dragOrigin=sq; validMoves=getAllLegalMoves(board,true).filter(m=>m.s===sq); canvas.setPointerCapture(e.pointerId); }
-            draw();
+            requestDraw();
         });
-        canvas.addEventListener('pointermove',(e)=>{ if(dragging){const c=getCoords(e); pointerX=c.x; pointerY=c.y; draw();} });
-        canvas.addEventListener('pointerup',(e)=>{ if(!dragging)return; dragging=false; canvas.releasePointerCapture(e.pointerId); const c=getCoords(e); const f=Math.floor((c.x-30)/60), r=7-Math.floor((c.y-10)/60), target=idx(f,r); if(target!==dragOrigin){ let m=validMoves.find(mv=>mv.t===target); if(m)processMove(dragOrigin,target,m.isCastle); else {sel=null;validMoves=[];draw();} } else draw(); });
+        
+        canvas.addEventListener('pointermove',(e)=>{ 
+            if(dragging){ const c=getCoords(e); pointerX=c.x; pointerY=c.y; requestDraw(); } 
+        });
+        
+        canvas.addEventListener('pointerup',(e)=>{ 
+            if(!dragging)return; dragging=false; canvas.releasePointerCapture(e.pointerId); 
+            const c=getCoords(e); const f=Math.floor((c.x-30)/60), r=7-Math.floor((c.y-10)/60), target=idx(f,r); 
+            if(target!==dragOrigin){ 
+                let m=validMoves.find(mv=>mv.t===target); 
+                if(m) processMove(dragOrigin,target,m.isCastle); else {sel=null;validMoves=[];requestDraw();} 
+            } else requestDraw(); 
+        });
 
         initGame();
     </script>
