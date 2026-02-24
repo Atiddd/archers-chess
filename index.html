@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v2.3</title>
+    <title>Archers Chess v2.4</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
@@ -11,25 +11,22 @@
         }
         body { font-family: 'Georgia', serif; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
-        header { text-align: center; margin-bottom: 20px; }
+        header { text-align: center; margin-bottom: 15px; }
         h1 { color: var(--primary); margin: 0; font-size: 2.2em; text-transform: uppercase; letter-spacing: 3px; border-bottom: 2px solid var(--primary); display: inline-block; }
         .author { font-style: italic; color: #795548; margin-top: 5px; }
 
-        .game-layout { display: grid; grid-template-columns: 260px 620px 260px; gap: 20px; max-width: 1200px; width: 100%; }
+        .game-layout { display: grid; grid-template-columns: 260px 660px 260px; gap: 20px; max-width: 1250px; width: 100%; }
 
         .side-panel { background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); height: fit-content; }
         .side-panel h3 { margin: 0 0 10px 0; font-size: 1.1em; border-bottom: 1px solid var(--primary); text-transform: uppercase; }
         
         .user-box { background: #efe6d5; padding: 12px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #dcd0b9; }
-        .leaderboard-table { width: 100%; font-size: 0.85em; border-collapse: collapse; }
-        .leaderboard-table tr:nth-child(even) { background: #f9f5eb; }
 
         #board-center { display: flex; flex-direction: column; align-items: center; }
         #status { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; }
-        #board-wrapper { position: relative; touch-action: none; width: 100%; }
-        canvas { width: 100%; height: auto; border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; cursor: pointer; }
+        
+        canvas { border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; cursor: pointer; touch-action: none; }
 
-        /* Restored Detailed Rules Grid */
         .rules-overlay { grid-column: 1 / span 3; background: white; padding: 25px; border-radius: 8px; border: 1px solid #ccc; margin-top: 30px; line-height: 1.6; }
         .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
         .rules-overlay h2 { text-align: center; margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
@@ -37,18 +34,14 @@
         button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
         button:hover { background: var(--accent); }
 
-        @media (max-width: 900px) {
-            .game-layout { display: flex; flex-direction: column; align-items: center; }
-            .rules-grid { grid-template-columns: 1fr; gap: 20px; }
-            .side-panel { width: 90%; }
-        }
+        @media (max-width: 1000px) { .game-layout { display: flex; flex-direction: column; align-items: center; } .side-panel { width: 95%; } }
     </style>
 </head>
 <body>
 
     <header>
         <h1>Archers Chess</h1>
-        <div class="author">Official Rules v1.0 • Created by John Patrick Read</div>
+        [cite_start]<div class="author">Official Rules v1.0 • Created by John Patrick Read [cite: 9]</div>
     </header>
 
     <div class="game-layout">
@@ -58,109 +51,90 @@
                 <div id="u-pts" style="font-size:0.9em; color:#795548; margin-bottom:8px;">0 Points</div>
                 <button onclick="doLogin()">New Player / Login</button>
             </div>
-            <h3>🏆 Top 10 Hall</h3>
-            <table class="leaderboard-table" id="hall-of-fame"><tbody></tbody></table>
+            <h3>🏆 Top Hall</h3>
+            <div id="hall-of-fame" style="font-size:0.9em;"></div>
         </div>
 
         <div id="board-center">
             <div id="status">White to Move</div>
-            <div id="board-wrapper">
-                <canvas id="board" width="600" height="480"></canvas>
-            </div>
+            <canvas id="board" width="660" height="520"></canvas>
         </div>
 
         <div class="side-panel">
             <h3>Captured</h3>
-            <div id="caps-black" style="font-size:24px; min-height:45px; display:flex; flex-wrap:wrap;"></div>
+            <div id="caps-black" style="font-size:24px; min-height:45px;"></div>
             <hr style="border:0.5px solid #ddd; margin:10px 0;">
-            <div id="caps-white" style="font-size:24px; min-height:45px; display:flex; flex-wrap:wrap;"></div>
-            
-            <h3 style="margin-top:20px;">AI Status</h3>
-            <p style="font-size:0.85em; color:#555;">Minimax Level 3 Depth.<br>Eval: Piece Safety + Positional Archer Pressure.</p>
+            <div id="caps-white" style="font-size:24px; min-height:45px;"></div>
+            <h3 style="margin-top:20px;">Rules Ref</h3>
+            [cite_start]<p style="font-size:0.8em; color:#555;">Archer Value: 4 [cite: 42][cite_start]<br>Castling: King moves 2 squares[cite: 40].</p>
         </div>
 
         <div class="rules-overlay">
-            <h2>Official Rules of Play</h2>
+            [cite_start]<h2>Official Rules of Play [cite: 11]</h2>
             <div class="rules-grid">
                 <div>
                     <strong style="color:var(--accent);">The Archer Piece (A):</strong>
-                    <p>A tactical ranged piece moving in two phases: 3 squares outward (O) and 1 diagonal return step (F). 
-                    Captures and checks ONLY occur on the final square (F). Straight moves are blocked by pieces; diagonal moves can jump.</p>
-                    
+                    [cite_start]<p>A ranged piece moving 3 squares outward (O) then 1 square diagonal return (F)[cite: 24, 27, 31]. [cite_start]Captures/Checks only on F[cite: 33, 35]. Diagonals jump; [cite_start]Straights are blocked[cite: 28, 29].</p>
                     <strong style="color:var(--accent);">The Board:</strong>
-                    <p>Played on a 10x8 grid. Files: -A, A, B, C, D, E, F, G, H, H+. Ranks 1-8.</p>
+                    <p>10x8 Grid. [cite_start]Files: -A, A, B, C, D, E, F, G, H, H+[cite: 19].</p>
                 </div>
                 <div>
-                    <strong style="color:var(--accent);">Scoring & Victory:</strong>
-                    <ul>
-                        <li><strong>Win:</strong> 3 Points | <strong>Draw:</strong> 1 Point.</li>
-                        <li><strong>Checkmate:</strong> Standard chess rules apply.</li>
-                    </ul>
+                    <strong style="color:var(--accent);">Movement Logic:</strong>
+                    [cite_start]<p>Standard Chess rules apply for all other pieces, including Castling, Promotion, and En Passant[cite: 17, 40].</p>
                     <strong style="color:var(--accent);">Piece Values:</strong>
-                    <p>Archer: 4 | Rook: 5 | Bishop/Knight: 3 | Pawn: 1.</p>
+                    <p>Archer: 4 | Rook: 5 | Bishop/Knight: 3 | [cite_start]Pawn: 1[cite: 42].</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('archers_v23_db')) || [];
-        let user = localStorage.getItem('archers_v23_user') || "Guest";
-
-        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v23_user', user); refreshUI(); } }
-        function saveScore(res) {
-            let p = db.find(x => x.name === user);
-            if(!p) { p = {name: user, pts: 0}; db.push(p); }
-            if(res === 'w') p.pts += 3; if(res === 'd') p.pts += 1;
-            localStorage.setItem('archers_v23_db', JSON.stringify(db));
-            refreshUI();
-        }
-        function refreshUI() {
-            document.getElementById('u-name').textContent = user;
-            let p = db.find(x => x.name === user) || {pts:0};
-            document.getElementById('u-pts').textContent = p.pts + " Points";
-            let sorted = [...db].sort((a,b) => b.pts - a.pts).slice(0,10);
-            document.getElementById('hall-of-fame').innerHTML = sorted.map((s,i) => `<tr><td>${i+1}. ${s.name}</td><td style="text-align:right"><b>${s.pts}</b></td></tr>`).join('');
-        }
-
         const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
-        
-        // Using Variation Selector-15 (\uFE0E) to force monochrome rendering
-        const archerSymbol = "\u{1F3F9}\u{FE0E}"; 
-        const symbols = { 
-            'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A': archerSymbol,
-            'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a': archerSymbol 
-        };
+        const archerSym = "\u{1F3F9}\u{FE0E}"; 
+        const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A': archerSym, 'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a': archerSym };
+        const files = ["-A","A","B","C","D","E","F","G","H","H+"];
         const vals = { 'k':1000,'q':9,'r':5,'a':4,'b':3,'n':3,'p':1 };
         
-        let board = [], turn = 'w', selected = null, shadows = [], caps = {w:[], b:[]}, over = false;
+        let board = [], turn = 'w', sel = null, shadows = [], caps = {w:[], b:[]}, over = false;
+        let moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
 
         function idx(f, r) { return f * 8 + r; }
         function isW(p) { return p && p === p.toUpperCase(); }
 
         function init() {
-            board = new Array(80).fill(null); turn = 'w'; shadows = []; caps = {w:[], b:[]}; over = false;
+            board = new Array(80).fill(null); turn = 'w'; sel = null; shadows = []; caps = {w:[], b:[]}; over = false;
+            moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
             const setup = ['A','R','N','B','Q','K','B','N','R','A'];
             for(let f=0; f<10; f++) { board[idx(f,0)]=setup[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=setup[f].toLowerCase(); }
-            refreshUI(); draw();
+            draw();
         }
 
-        function canMove(s, t, b) {
-            let p = b[s], tp = b[t];
+        function canMove(s, t, b, checkCastling=true) {
+            let p = b[s], tp = b[t], sf = Math.floor(s/8), sr = s%8, ef = Math.floor(t/8), er = t%8;
             if(!p || (tp && isW(p) === isW(tp))) return false;
-            let sf = Math.floor(s/8), sr = s%8, ef = Math.floor(t/8), er = t%8;
             let dx = ef-sf, dy = er-sr, type = p.toUpperCase();
 
-            if(type === 'P') {
+            if(type==='K' && checkCastling && Math.abs(dx)===2 && dy===0) {
+                if(isW(p)) {
+                    if(moved.wK) return false;
+                    if(dx===-2 && !moved.wR1 && !b[idx(2,0)] && !b[idx(3,0)] && !b[idx(4,0)]) return true;
+                    if(dx===2 && !moved.wR2 && !b[idx(6,0)] && !b[idx(7,0)]) return true;
+                } else {
+                    if(moved.bK) return false;
+                    if(dx===-2 && !moved.bR1 && !b[idx(2,7)] && !b[idx(3,7)] && !b[idx(4,7)]) return true;
+                    if(dx===2 && !moved.bR2 && !b[idx(6,7)] && !b[idx(7,7)]) return true;
+                }
+            }
+            if(type==='P') {
                 let d = isW(p)?1:-1;
                 if(dx===0 && dy===d && !tp) return true;
                 if(dx===0 && dy===2*d && sr===(isW(p)?1:6) && !tp && !b[idx(sf,sr+d)]) return true;
                 if(Math.abs(dx)===1 && dy===d && tp) return true;
                 return false;
             }
-            if(type === 'N') return [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]].some(n => n[0]===dx && n[1]===dy);
-            if(type === 'K') return Math.max(Math.abs(dx), Math.abs(dy)) <= 1;
-            if(type === 'A') {
+            if(type==='N') return [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]].some(n=>n[0]===dx && n[1]===dy);
+            if(type==='K') return Math.max(Math.abs(dx), Math.abs(dy)) <= 1;
+            if(type==='A') {
                 const ds = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
                 for(let [ox, oy] of ds) {
                     let f3 = sf+ox*3, r3 = sr+oy*3;
@@ -188,102 +162,96 @@
                 if(canMove(sq, t, b)) {
                     let o = b[t], p = b[sq]; b[t]=p; b[sq]=null;
                     let k = b.findIndex(x => x === (isW(p)?'K':'k')), ok = true;
-                    if(k!==-1) for(let i=0; i<80; i++) if(b[i] && isW(b[i])!==isW(p) && canMove(i, k, b)) ok = false;
+                    if(k!==-1) for(let i=0; i<80; i++) if(b[i] && isW(b[i])!==isW(p) && canMove(i, k, b, false)) ok = false;
                     b[sq]=p; b[t]=o; if(ok) m.push(t);
                 }
             }
             return m;
         }
 
-        function evalBoard(b) {
+        function exec(s, t) {
+            let p = board[s], tp = board[t];
+            if(tp) isW(tp)?caps.w.push(tp):caps.b.push(tp);
+            
+            // Castling Execution
+            if(p.toUpperCase()==='K' && Math.abs(Math.floor(t/8)-Math.floor(s/8))===2) {
+                let rS = Math.floor(t/8)===3 ? idx(1,s%8) : idx(8,s%8);
+                let rT = Math.floor(t/8)===3 ? idx(4,s%8) : idx(6,s%8);
+                board[rT]=board[rS]; board[rS]=null;
+            }
+
+            // Moved flags
+            if(s===idx(5,0)) moved.wK=true; if(s===idx(1,0)) moved.wR1=true; if(s===idx(8,0)) moved.wR2=true;
+            if(s===idx(5,7)) moved.bK=true; if(s===idx(1,7)) moved.bR1=true; if(s===idx(8,7)) moved.bR2=true;
+
+            board[t]=p; board[s]=null;
+            if(p==='P' && t%8===7) board[t]='Q'; if(p==='p' && t%8===0) board[t]='q';
+            turn = turn==='w'?'b':'w'; draw(); check();
+            if(turn==='b' && !over) setTimeout(ai, 600);
+        }
+
+        function evalB(b) {
             let s = 0;
-            for(let i=0; i<80; i++) if(b[i]) s += isW(b[i]) ? vals[b[i].toLowerCase()] : -vals[b[i].toLowerCase()];
+            for(let i=0; i<80; i++) if(b[i]) s += isW(b[i])?vals[b[i].toLowerCase()]:-vals[b[i].toLowerCase()];
             return s;
         }
 
-        function minimax(b, d, alpha, beta, isMax) {
-            if(d === 0) return evalBoard(b);
-            let ms = [];
-            for(let i=0; i<80; i++) if(b[i] && isW(b[i])===isMax) getMoves(i,b).forEach(m => ms.push({s:i, t:m}));
-            if(isMax) {
-                let v = -9999;
-                for(let m of ms) {
-                    let o = b[m.t]; b[m.t]=b[m.s]; b[m.s]=null;
-                    v = Math.max(v, minimax(b, d-1, alpha, beta, false));
-                    b[m.s]=b[m.t]; b[m.t]=o; alpha = Math.max(alpha, v);
-                    if(beta <= alpha) break;
-                }
-                return v;
+        function minimax(b, d, a, bt, isM) {
+            if(d===0) return evalB(b);
+            let ms = []; for(let i=0; i<80; i++) if(b[i] && isW(b[i])===isM) getMoves(i,b).forEach(m=>ms.push({s:i, t:m}));
+            if(isM) {
+                let v = -9999; for(let m of ms) {
+                    let o = b[m.t]; b[m.t]=b[m.s]; b[m.s]=null; v = Math.max(v, minimax(b, d-1, a, bt, false));
+                    b[m.s]=b[m.t]; b[m.t]=o; a = Math.max(a, v); if(bt<=a) break;
+                } return v;
             } else {
-                let v = 9999;
-                for(let m of ms) {
-                    let o = b[m.t]; b[m.t]=b[m.s]; b[m.s]=null;
-                    v = Math.min(v, minimax(b, d-1, alpha, beta, true));
-                    b[m.s]=b[m.t]; b[m.t]=o; beta = Math.min(beta, v);
-                    if(beta <= alpha) break;
-                }
-                return v;
+                let v = 9999; for(let m of ms) {
+                    let o = b[m.t]; b[m.t]=b[m.s]; b[m.s]=null; v = Math.min(v, minimax(b, d-1, a, bt, true));
+                    b[m.s]=b[m.t]; b[m.t]=o; bt = Math.min(bt, v); if(bt<=a) break;
+                } return v;
             }
         }
 
         function ai() {
-            let ms = [];
-            for(let i=0; i<80; i++) if(board[i] && !isW(board[i])) getMoves(i, board).forEach(m => ms.push({s:i, t:m}));
-            if(ms.length === 0) return check();
-            let bestM = null, bestV = 9999;
+            let ms = []; for(let i=0; i<80; i++) if(board[i] && !isW(board[i])) getMoves(i, board).forEach(m=>ms.push({s:i, t:m}));
+            if(ms.length===0) return check();
+            let bM = null, bV = 9999;
             for(let m of ms) {
                 let o = board[m.t]; board[m.t]=board[m.s]; board[m.s]=null;
-                let v = minimax(board, 3, -10000, 10000, true);
+                let v = minimax(board, 2, -10000, 10000, true);
                 board[m.s]=board[m.t]; board[m.t]=o;
-                if(v < bestV) { bestV = v; bestM = m; }
+                if(v < bV) { bV = v; bM = m; }
             }
-            exec(bestM.s, bestM.t);
-        }
-
-        function exec(s, t) {
-            let p = board[s], tp = board[t];
-            if(tp) isW(tp)?caps.w.push(tp):caps.b.push(tp);
-            board[t]=p; board[s]=null;
-            if(p==='P' && t%8===7) board[t]='Q';
-            if(p==='p' && t%8===0) board[t]='q';
-            turn = turn==='w'?'b':'w';
-            draw(); check();
-            if(turn==='b' && !over) setTimeout(ai, 500);
+            exec(bM.s, bM.t);
         }
 
         function check() {
-            let m = false;
-            for(let i=0; i<80; i++) if(board[i] && isW(board[i])===(turn==='w') && getMoves(i, board).length > 0) m = true;
+            let m = false; for(let i=0; i<80; i++) if(board[i] && isW(board[i])===(turn==='w') && getMoves(i, board).length > 0) m = true;
             if(!m) {
-                over = true;
-                let k = board.findIndex(x => x === (turn==='w'?'K':'k')), isCheck = false;
-                for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && canMove(i, k, board)) isCheck = true;
-                if(isCheck) { alert(turn==='b'?"CHECKMATE - YOU WIN!":"CHECKMATE - AI WINS!"); if(turn==='b') saveScore('w'); }
-                else { alert("STALEMATE"); saveScore('d'); }
+                over = true; let k = board.findIndex(x => x === (turn==='w'?'K':'k')), ic = false;
+                for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && canMove(i, k, board, false)) ic = true;
+                alert(ic ? (turn==='b'?"MATE - WIN!":"MATE - LOST") : "STALEMATE");
                 init();
             }
         }
 
         function draw() {
-            ctx.clearRect(0,0,600,480);
+            ctx.clearRect(0,0,660,520);
+            ctx.fillStyle = "#2c1e12"; ctx.font = "bold 14px Georgia";
+            // Draw Labels
+            for(let f=0; f<10; f++) ctx.fillText(files[f], 30 + f*60 + 20, 510);
+            for(let r=0; r<8; r++) ctx.fillText(8-r, 10, 20 + r*60 + 35);
+
             for(let r=7; r>=0; r--) {
                 for(let f=0; f<10; f++) {
                     ctx.fillStyle = (f+r)%2===0 ? '#f0d9b5' : '#b58863';
-                    ctx.fillRect(f*60, (7-r)*60, 60, 60);
-                    if(shadows.includes(idx(f,r))) { ctx.fillStyle = "rgba(0,0,0,0.1)"; ctx.beginPath(); ctx.arc(f*60+30, (7-r)*60+30, 8, 0, 7); ctx.fill(); }
+                    ctx.fillRect(30 + f*60, (7-r)*60 + 10, 60, 60);
+                    if(shadows.includes(idx(f,r))) { ctx.fillStyle = "rgba(0,0,0,0.1)"; ctx.beginPath(); ctx.arc(30+f*60+30, (7-r)*60+10+30, 8, 0, 7); ctx.fill(); }
                     let p = board[idx(f,r)];
                     if(p) {
-                        ctx.textAlign='center';
-                        ctx.fillStyle = isW(p) ? '#fff' : '#000';
-                        
-                        // Reshading Logic: Archers use the forced monochrome glyph
-                        if(p.toUpperCase() === 'A') {
-                            ctx.font = '36px serif';
-                            ctx.fillText(symbols[p], f*60+30, (7-r)*60+44);
-                        } else {
-                            ctx.font = '42px serif';
-                            ctx.fillText(symbols[p], f*60+30, (7-r)*60+44);
-                        }
+                        ctx.textAlign='center'; ctx.fillStyle = isW(p) ? '#fff' : '#000';
+                        ctx.font = p.toUpperCase()==='A' ? '36px serif' : '42px serif';
+                        ctx.fillText(symbols[p], 30 + f*60 + 30, (7-r)*60 + 10 + 44);
                     }
                 }
             }
@@ -295,13 +263,12 @@
         function input(e) {
             if(turn==='b' || over) return;
             const r = canvas.getBoundingClientRect();
-            const cx = e.touches ? e.touches[0].clientX : e.clientX;
-            const cy = e.touches ? e.touches[0].clientY : e.clientY;
-            const f = Math.floor(((cx-r.left)*(600/r.width))/60);
-            const rIdx = 7-Math.floor(((cy-r.top)*(480/r.height))/60);
+            const cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
+            const f = Math.floor(((cx-r.left)*(660/r.width)-30)/60), rIdx = 7-Math.floor(((cy-r.top)*(520/r.height)-10)/60);
             const s = idx(f,rIdx);
-            if(selected === null) { if(board[s] && isW(board[s])) { selected = s; shadows = getMoves(s, board); } }
-            else { if(shadows.includes(s)) exec(selected, s); selected = null; shadows = []; }
+            if(f<0 || f>9 || rIdx<0 || rIdx>7) return;
+            if(sel === null) { if(board[s] && isW(board[s])) { sel = s; shadows = getMoves(s, board); } }
+            else { if(shadows.includes(s)) exec(sel, s); sel = null; shadows = []; }
             draw();
         }
 
