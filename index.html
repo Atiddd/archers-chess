@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v3.1</title>
+    <title>Archers Chess v3.2</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
@@ -72,7 +72,7 @@
             <div id="caps-white" style="font-size:24px; min-height:45px; display:flex; flex-wrap:wrap;"></div>
             
             <h3 style="margin-top:20px;">AI Status</h3>
-            <p style="font-size:0.85em; color:#555;">Lightning Heuristic Engine.<br>Instant calculation. 0% Crash Rate.</p>
+            <p style="font-size:0.85em; color:#555;">Isolated Web Worker Blob.<br>Running in parallel background thread.</p>
         </div>
 
         <div class="rules-overlay">
@@ -100,15 +100,18 @@
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('archers_v31_db')) || [];
-        let user = localStorage.getItem('archers_v31_user') || "Guest";
+        let db = [];
+        let user = "Guest";
+        
+        // Anti-Crash Try/Catch for strict browser privacy settings
+        try { db = JSON.parse(localStorage.getItem('archers_v32_db')) || []; user = localStorage.getItem('archers_v32_user') || "Guest"; } catch(e) {}
 
-        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v31_user', user); refreshUI(); } }
+        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); try { localStorage.setItem('archers_v32_user', user); } catch(e){} refreshUI(); } }
         function saveScore(res) {
             let p = db.find(x => x.name === user);
             if(!p) { p = {name: user, pts: 0}; db.push(p); }
             if(res === 'w') p.pts += 3; if(res === 'd') p.pts += 1;
-            localStorage.setItem('archers_v31_db', JSON.stringify(db));
+            try { localStorage.setItem('archers_v32_db', JSON.stringify(db)); } catch(e){}
             refreshUI();
         }
         function refreshUI() {
@@ -131,20 +134,13 @@
         function idx(f, r) { return f * 8 + r; }
         function isW(p) { return p && p === p.toUpperCase(); }
 
-        function init() {
-            board = new Array(80).fill(null); turn = 'w'; sel = null; shadows = []; caps = {w:[], b:[]}; over = false; gameLocked = false;
-            moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
-            const setup = ['A','R','N','B','Q','K','B','N','R','A'];
-            for(let f=0; f<10; f++) { board[idx(f,0)]=setup[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=setup[f].toLowerCase(); }
-            refreshUI(); draw();
-        }
-
-        function canMove(s, t, b, checkCastling=true) {
+        // Core logic encapsulated so it can be cloned to the parallel dimension
+        function canMove(s, t, b) {
             let p = b[s], tp = b[t], sf = Math.floor(s/8), sr = s%8, ef = Math.floor(t/8), er = t%8;
             if(!p || (tp && isW(p) === isW(tp))) return false;
             let dx = ef-sf, dy = er-sr, type = p.toUpperCase();
 
-            if(type==='K' && checkCastling && Math.abs(dx)===2 && dy===0) {
+            if(type==='K' && Math.abs(dx)===2 && dy===0) {
                 if(isW(p)) {
                     if(moved.wK) return false;
                     if(dx===-2 && !moved.wR1 && !b[idx(2,0)] && !b[idx(3,0)] && !b[idx(4,0)]) return true;
@@ -166,17 +162,22 @@
             if(type==='K') return Math.max(Math.abs(dx), Math.abs(dy)) <= 1;
             if(type==='A') {
                 const ds = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
-                for(let [ox, oy] of ds) {
+                for(let i=0; i<8; i++) {
+                    let ox = ds[i][0], oy = ds[i][1];
                     let f3 = sf+ox*3, r3 = sr+oy*3;
                     if(f3<0||f3>=10||r3<0||r3>=8) continue;
                     if((ox===0||oy===0) && (b[idx(sf+ox,sr+oy)] || b[idx(sf+ox*2,sr+oy*2)])) continue;
                     let rs = [[-ox-oy,-oy+ox],[-ox+oy,-oy-ox]];
-                    for(let [rx,ry] of rs) if(f3+Math.sign(rx)===ef && r3+Math.sign(ry)===er) return true;
+                    for(let j=0; j<2; j++) {
+                        let rx = rs[j][0], ry = rs[j][1];
+                        if(f3+Math.sign(rx)===ef && r3+Math.sign(ry)===er) return true;
+                    }
                 }
                 return false;
             }
             let sl = type==='R'?[[0,1],[0,-1],[1,0],[-1,0]]:type==='B'?[[1,1],[1,-1],[-1,1],[-1,-1]]:[[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
-            for(let [sx, sy] of sl) {
+            for(let i=0; i<sl.length; i++) {
+                let sx = sl[i][0], sy = sl[i][1];
                 if(sx*dy === sy*dx && Math.sign(sx)===Math.sign(dx) && Math.sign(sy)===Math.sign(dy)) {
                     let cf=sf+sx, cr=sr+sy;
                     while(cf!==ef || cr!==er) { if(b[idx(cf,cr)]) return false; cf+=sx; cr+=sy; }
@@ -186,32 +187,112 @@
             return false;
         }
 
-        // Extremely fast magical threat detection 
         function isAttacked(sq, b, byWhite) {
             for(let i=0; i<80; i++) {
-                if(b[i] && isW(b[i])===byWhite) {
-                    if(canMove(i, sq, b, false)) return true;
-                }
+                if(b[i] && isW(b[i])===byWhite) { if(canMove(i, sq, b)) return true; }
             }
             return false;
         }
 
-        // Optimized move generation using the new threat detection
         function getMoves(sq, b, checkSafe=true) {
-            let m = [];
-            let p = b[sq];
-            let kTarget = isW(p)?'K':'k';
+            let m = []; let p = b[sq]; let kTarget = isW(p)?'K':'k';
             for(let t=0; t<80; t++) {
                 if(canMove(sq, t, b)) {
                     if(!checkSafe) { m.push(t); continue; }
                     let o = b[t]; b[t]=p; b[sq]=null;
                     let k = b.indexOf(kTarget);
-                    // Instead of looping the whole board recursively, check threats instantly
                     if(k === -1 || !isAttacked(k, b, !isW(p))) m.push(t);
                     b[sq]=p; b[t]=o;
                 }
             }
             return m;
+        }
+
+        function evalB(b) {
+            let s = 0;
+            for(let i=0; i<80; i++) {
+                if(b[i]) {
+                    let v = vals[b[i].toLowerCase()];
+                    let f = Math.floor(i/8), r = i%8;
+                    let centerControl = Math.abs(f - 4.5) + Math.abs(r - 3.5);
+                    v += (10 - centerControl); 
+                    s += isW(b[i]) ? v : -v;
+                }
+            }
+            return s;
+        }
+
+        // =====================================================
+        // MAGIC FIX: WEB WORKER PARALLEL THREAD GENERATOR
+        // =====================================================
+        const workerScript = `
+            const vals = ${JSON.stringify(vals)};
+            let moved = {};
+            ${idx.toString()}
+            ${isW.toString()}
+            ${canMove.toString()}
+            ${isAttacked.toString()}
+            ${getMoves.toString()}
+            ${evalB.toString()}
+            
+            self.onmessage = function(e) {
+                let board = e.data.board;
+                moved = e.data.moved;
+                
+                let ms = []; 
+                for(let i=0; i<80; i++) {
+                    if(board[i] && !isW(board[i])) {
+                        let validMoves = getMoves(i, board, true);
+                        for(let j=0; j<validMoves.length; j++) {
+                            ms.push({s:i, t:validMoves[j]});
+                        }
+                    }
+                }
+                
+                if(ms.length===0) { self.postMessage({ bestS: null, bestT: null }); return; }
+
+                // Safe mathematical array shuffler
+                for(let i = ms.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    let temp = ms[i]; ms[i] = ms[j]; ms[j] = temp;
+                }
+
+                let bM = ms[0], bV = 999999;
+                for(let i=0; i<ms.length; i++) {
+                    let m = ms[i];
+                    let o = board[m.t]; board[m.t]=board[m.s]; board[m.s]=null;
+                    
+                    let v = evalB(board);
+                    if(isAttacked(m.t, board, true)) v += vals[board[m.t].toLowerCase()] * 1.5;
+                    let wkIdx = board.indexOf('K');
+                    if(wkIdx !== -1 && isAttacked(wkIdx, board, false)) v -= 20;
+                    
+                    board[m.s]=board[m.t]; board[m.t]=o;
+                    if(v < bV) { bV = v; bM = m; }
+                }
+                self.postMessage({ bestS: bM.s, bestT: bM.t });
+            };
+        `;
+
+        const blob = new Blob([workerScript], {type: "application/javascript"});
+        const aiWorker = new Worker(URL.createObjectURL(blob));
+
+        aiWorker.onmessage = function(e) {
+            if(e.data.bestS === null) {
+                gameLocked = false;
+                checkEnd();
+                return;
+            }
+            exec(e.data.bestS, e.data.bestT);
+        };
+        // =====================================================
+
+        function init() {
+            board = new Array(80).fill(null); turn = 'w'; sel = null; shadows = []; caps = {w:[], b:[]}; over = false; gameLocked = false;
+            moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
+            const setup = ['A','R','N','B','Q','K','B','N','R','A'];
+            for(let f=0; f<10; f++) { board[idx(f,0)]=setup[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=setup[f].toLowerCase(); }
+            refreshUI(); draw();
         }
 
         function exec(s, t) {
@@ -237,70 +318,12 @@
             if(!checkEnd()) {
                 if(turn==='b') {
                     gameLocked = true; 
-                    setTimeout(ai, 50); 
+                    // Tell the parallel worker thread to start thinking
+                    aiWorker.postMessage({ board: board, moved: moved });
                 } else {
                     gameLocked = false;
                 }
             }
-        }
-
-        function evalB(b) {
-            let s = 0, wK = false, bK = false;
-            for(let i=0; i<80; i++) {
-                if(b[i]) {
-                    if(b[i]==='K') wK = true;
-                    if(b[i]==='k') bK = true;
-                    let v = vals[b[i].toLowerCase()];
-                    let f = Math.floor(i/8), r = i%8;
-                    let centerControl = Math.abs(f - 4.5) + Math.abs(r - 3.5);
-                    v += (10 - centerControl); 
-                    s += isW(b[i]) ? v : -v;
-                }
-            }
-            if(!wK) return -999999;
-            if(!bK) return 999999;
-            return s;
-        }
-
-        // The "Magical Fix" - Pure Positional Heuristics Engine. No recursion, no crashing.
-        function ai() {
-            let ms = []; 
-            for(let i=0; i<80; i++) if(board[i] && !isW(board[i])) getMoves(i, board, true).forEach(m=>ms.push({s:i, t:m}));
-            if(ms.length===0) { gameLocked=false; return checkEnd(); }
-
-            // Safe shuffle to randomize tie-breaks
-            for(let i = ms.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [ms[i], ms[j]] = [ms[j], ms[i]];
-            }
-
-            let bM = ms[0], bV = 999999;
-            
-            for(let m of ms) {
-                let o = board[m.t]; board[m.t]=board[m.s]; board[m.s]=null;
-                
-                // 1. Evaluate raw board position
-                let v = evalB(board);
-                
-                // 2. Heuristic Look-Ahead: Will this piece be captured if I move it here?
-                if(isAttacked(m.t, board, true)) {
-                    v += vals[board[m.t].toLowerCase()] * 1.5; // Huge penalty for hanging pieces
-                }
-
-                // 3. Heuristic Look-Ahead: Does this move put the opponent King in check?
-                let wkIdx = board.indexOf('K');
-                if(wkIdx !== -1 && isAttacked(wkIdx, board, false)) {
-                    v -= 20; // Nice bonus for aggressive plays
-                }
-
-                board[m.s]=board[m.t]; board[m.t]=o;
-                
-                // Find the lowest score (Best for Black)
-                if(v < bV) { bV = v; bM = m; }
-            }
-            
-            exec(bM.s, bM.t);
-            gameLocked = false;
         }
 
         function checkEnd() {
@@ -312,7 +335,7 @@
             }
             if(!m) {
                 over = true; let k = board.indexOf(turn==='w'?'K':'k'), ic = false;
-                if(k!==-1) for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && canMove(i, k, board, false)) { ic = true; break; }
+                if(k!==-1) for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && canMove(i, k, board)) { ic = true; break; }
                 
                 setTimeout(() => {
                     alert(ic ? (turn==='b'?"CHECKMATE - WHITE WINS!":"CHECKMATE - BLACK WINS!") : "STALEMATE!");
