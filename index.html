@@ -3,58 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v1.8 - Mobile Edition</title>
+    <title>Archers Chess v1.9</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
             --tile-light: #f0d9b5; --tile-dark: #b58863; --panel-bg: #fffcf5;
         }
-        /* Mobile-First Layout */
         body { 
             font-family: 'Georgia', serif; background: var(--bg); color: #2c1e12; 
             margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center;
-            touch-action: manipulation; /* Prevents double-tap zoom delay */
         }
         
-        header { text-align: center; width: 100%; margin-bottom: 10px; }
-        h1 { color: var(--primary); margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px; }
-        .author { font-style: italic; color: #795548; font-size: 0.8rem; }
+        /* HEADER */
+        header { text-align: center; width: 100%; margin-bottom: 15px; }
+        h1 { color: var(--primary); margin: 0; font-size: 2rem; text-transform: uppercase; letter-spacing: 2px; border-bottom: 2px solid var(--primary); display: inline-block; }
+        .author { font-style: italic; color: #795548; font-size: 0.9rem; margin-top: 5px; }
 
-        /* Responsive Grid */
+        /* MAIN LAYOUT (DESKTOP) */
         .game-layout { 
-            display: flex; flex-direction: column; width: 100%; max-width: 600px; gap: 15px; 
+            display: grid; 
+            grid-template-columns: 260px 620px 260px; 
+            gap: 20px; 
+            max-width: 1200px; 
+            width: 100%;
         }
 
-        /* Responsive Board */
-        #board-center { width: 100%; display: flex; flex-direction: column; align-items: center; }
-        #board-wrapper { width: 100%; position: relative; touch-action: none; }
-        canvas { 
-            width: 100%; height: auto; border: 5px solid var(--primary); 
-            border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
-            background: #deb887;
-        }
-
-        #status { font-size: 1.1rem; font-weight: bold; margin-bottom: 8px; color: var(--primary); height: 1.5rem; }
-
-        /* Panels stack on mobile, side-by-side on tablet+ */
+        /* SIDE PANELS */
         .side-panel { 
             background: var(--panel-bg); border: 2px solid var(--primary); 
-            border-radius: 8px; padding: 12px; box-shadow: 2px 2px 8px rgba(0,0,0,0.1); 
+            border-radius: 8px; padding: 15px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1);
+            height: fit-content;
         }
+        .side-panel h3 { margin: 0 0 10px 0; font-size: 1.1em; border-bottom: 1px solid var(--primary); text-transform: uppercase; }
         
-        .user-box { background: #efe6d5; padding: 8px; border-radius: 4px; margin-bottom: 10px; border: 1px solid #dcd0b9; display: flex; justify-content: space-between; align-items: center;}
-        
-        .leaderboard-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; }
+        .user-box { background: #efe6d5; padding: 12px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #dcd0b9; }
+        .leaderboard-table { width: 100%; font-size: 0.85em; border-collapse: collapse; }
         .leaderboard-table tr:nth-child(even) { background: #f9f5eb; }
 
-        .rules-overlay { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ccc; line-height: 1.4; font-size: 0.85rem; }
-        .rules-overlay h2 { font-size: 1.1rem; margin-top: 0; border-bottom: 2px solid var(--primary); }
+        /* BOARD AREA */
+        #board-center { display: flex; flex-direction: column; align-items: center; }
+        #status { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; }
+        #board-wrapper { position: relative; touch-action: none; width: 100%; }
+        canvas { 
+            width: 100%; height: auto; border: 10px solid var(--primary); 
+            border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887;
+        }
 
-        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
-        
-        @media (min-width: 900px) {
-            .game-layout { display: grid; grid-template-columns: 240px 1fr 240px; max-width: 1200px; }
-            h1 { font-size: 2.2rem; }
+        /* RULES SECTION (MANDATORY) */
+        .rules-container { 
+            grid-column: 1 / span 3; 
+            background: white; padding: 25px; border-radius: 8px; 
+            border: 1px solid #ccc; margin-top: 25px; line-height: 1.6; 
+        }
+        .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .rules-container h2 { text-align: center; margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--primary); }
+
+        /* BUTTONS */
+        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: var(--accent); }
+
+        /* MOBILE ADJUSTMENTS */
+        @media (max-width: 900px) {
+            .game-layout { display: flex; flex-direction: column; align-items: center; }
+            .rules-grid { grid-template-columns: 1fr; gap: 20px; }
+            h1 { font-size: 1.5rem; }
+            .side-panel { width: 90%; margin-bottom: 10px; }
         }
     </style>
 </head>
@@ -62,10 +75,23 @@
 
     <header>
         <h1>Archers Chess</h1>
-        <div class="author">Rules v1.0 • John Patrick Read [cite: 13, 14]</div>
+        <div class="author">Official Rules v1.0 • Created by John Patrick Read</div>
     </header>
 
     <div class="game-layout">
+        <div class="side-panel">
+            <div class="user-box">
+                <div id="active-user-name" style="font-weight:bold;">Guest</div>
+                <div id="active-user-pts" style="font-size:0.9em; color:#795548; margin-bottom:8px;">0 Points</div>
+                <button style="width:100%; font-size:12px;" onclick="userLogin()">New Player / Login</button>
+            </div>
+            <h3>🏆 Top 10 Hall</h3>
+            <table class="leaderboard-table" id="hall-of-fame"><tbody></tbody></table>
+            <div style="margin-top:10px; font-size:0.75rem; text-align:center;">
+                <a href="#" style="color:var(--accent); font-weight:bold;">View Global Leaderboards</a>
+            </div>
+        </div>
+
         <div id="board-center">
             <div id="status">White to Move</div>
             <div id="board-wrapper">
@@ -74,46 +100,54 @@
         </div>
 
         <div class="side-panel">
-            <div class="user-box">
-                <div>
-                    <div id="active-user-name" style="font-weight:bold;">Guest</div>
-                    <div id="active-user-pts" style="font-size:0.8rem; color:#795548;">0 Points</div>
-                </div>
-                <button onclick="userLogin()">Login</button>
-            </div>
-            <h3>🏆 Top 10 Hall</h3>
-            <table class="leaderboard-table" id="hall-of-fame"><tbody></tbody></table>
-        </div>
-
-        <div class="side-panel">
             <h3>Captured</h3>
-            <div id="black-captures" style="font-size:20px; min-height:30px;"></div>
-            <hr>
-            <div id="white-captures" style="font-size:20px; min-height:30px;"></div>
+            <div id="black-captures" style="font-size:24px; min-height:40px; display:flex; flex-wrap:wrap;"></div>
+            <hr style="border:0.5px solid #ddd; margin:10px 0;">
+            <div id="white-captures" style="font-size:24px; min-height:40px; display:flex; flex-wrap:wrap;"></div>
+            
+            <h3 style="margin-top:20px;">AI Status</h3>
+            <p id="ai-thought" style="font-size:0.8rem; color:#555;">Level 3 Minimax Active.</p>
         </div>
 
-        <div class="rules-overlay">
-            <h2>Official Rules [cite: 11]</h2>
-            <p><strong>The Archer ($A$):</strong> Moves 3 squares outward ($O$) and 1 diagonal return step ($F$). Captures/Checks ONLY on $F$[cite: 24, 25, 34, 35]. Straight moves are blocked; diagonals jump[cite: 28, 29]. Board is $10\times8$.</p>
-            <p><strong>Scoring:</strong> Win = 3pts, Draw = 1pt.</p>
+        <div class="rules-container">
+            <h2>Official Rules of Play</h2>
+            <div class="rules-grid">
+                <div>
+                    <strong style="color:var(--accent);">1. The Archer Piece (A):</strong>
+                    <p>Moves exactly 3 squares in a straight or diagonal direction (Outward Phase), followed by a mandatory 1-square diagonal return step (Final Phase)[cite: 24, 27, 31]. 
+                    Captures and Checks only occur on the final square[cite: 33, 35]. Straight moves cannot jump pieces; diagonals can[cite: 28, 29].</p>
+                    
+                    <strong style="color:var(--accent);">2. Board Layout:</strong>
+                    <p>Played on a 10x8 board with files -A through H+. Standard chess rules (Castling, En Passant) apply unchanged[cite: 40].</p>
+                </div>
+                <div>
+                    <strong style="color:var(--accent);">3. Scoring System:</strong>
+                    <ul>
+                        <li><strong>Win:</strong> 3 Points | <strong>Draw:</strong> 1 Point.</li>
+                        <li><strong>Piece Value:</strong> Archer is valued at 4 points.</li>
+                    </ul>
+                    <strong style="color:var(--accent);">4. Authorship:</strong>
+                    <p>Created by John Patrick Read, January 2026[cite: 2, 3]. Canonical Rules v1.0[cite: 50].</p>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // --- Persistence & AI Upgrade ---
-        let players = JSON.parse(localStorage.getItem('archers_v18_db')) || [];
-        let activeUser = localStorage.getItem('archers_v18_user') || "Guest";
+        // --- Persistence ---
+        let players = JSON.parse(localStorage.getItem('archers_v19_db')) || [];
+        let activeUser = localStorage.getItem('archers_v19_user') || "Guest";
 
         function userLogin() {
             let n = prompt("Enter Username:", activeUser);
-            if(n) { activeUser = n.trim(); localStorage.setItem('archers_v18_user', activeUser); updateStats(); }
+            if(n) { activeUser = n.trim(); localStorage.setItem('archers_v19_user', activeUser); renderStats(); }
         }
 
-        function updateStats(res) {
+        function updateScore(res) {
             let p = players.find(x => x.name === activeUser);
             if(!p) { p = {name: activeUser, pts: 0}; players.push(p); }
             if(res === 'w') p.pts += 3; if(res === 'd') p.pts += 1;
-            localStorage.setItem('archers_v18_db', JSON.stringify(players));
+            localStorage.setItem('archers_v19_db', JSON.stringify(players));
             renderStats();
         }
 
@@ -125,11 +159,12 @@
             document.getElementById('hall-of-fame').innerHTML = sorted.map((s,i) => `<tr><td>${i+1}. ${s.name}</td><td style="text-align:right"><b>${s.pts}</b></td></tr>`).join('');
         }
 
-        // --- Board Logic ---
+        // --- Game Logic ---
         const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
         const SQ = 60, FILES = 10, RANKS = 8;
         const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹','k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🏹' };
-        
+        const vals = { 'k':1000,'q':9,'r':5,'a':4,'b':3,'n':3,'p':1 };
+
         let board = [], turn = 'w', selected = null, shadows = [], caps = {w:[], b:[]}, gameOver = false;
 
         function idx(f, r) { return f * RANKS + r; }
@@ -137,12 +172,14 @@
 
         function init() {
             board = new Array(80).fill(null); turn = 'w'; shadows = []; caps = {w:[], b:[]}; gameOver = false;
-            const row = ['A','R','N','B','Q','K','B','N','R','A'];
-            for(let f=0; f<10; f++) { board[idx(f,0)]=row[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=row[f].toLowerCase(); }
+            const setup = ['A','R','N','B','Q','K','B','N','R','A'];
+            for(let f=0; f<10; f++) { 
+                board[idx(f,0)] = setup[f]; board[idx(f,1)] = 'P';
+                board[idx(f,6)] = 'p'; board[idx(f,7)] = setup[f].toLowerCase();
+            }
             renderStats(); draw();
         }
 
-        // Move Validation (Archer & Standard)
         function moveLegal(s, t, b) {
             let p = b[s], tp = b[t];
             if(!p || (tp && isW(p) === isW(tp))) return false;
@@ -186,23 +223,57 @@
                 if(moveLegal(sq, t, b)) {
                     let old = b[t], p = b[sq]; b[t]=p; b[sq]=null;
                     let k = b.findIndex(x => x === (isW(p)?'K':'k')), safe = true;
-                    if(k !== -1) for(let i=0; i<80; i++) if(b[i] && isW(b[i])!==isW(p) && moveLegal(i, k, b)) safe = false;
+                    if(k!==-1) for(let i=0; i<80; i++) if(b[i] && isW(b[i])!==isW(p) && moveLegal(i, k, b)) safe = false;
                     b[sq]=p; b[t]=old; if(safe) m.push(t);
                 }
             }
             return m;
         }
 
-        // --- Simplified AI for Performance ---
-        function aiTurn() {
+        // --- Challenge AI (Minimax) ---
+        function evalBoard(b) {
+            let s = 0;
+            for(let i=0; i<80; i++) if(b[i]) s += isW(b[i]) ? vals[b[i].toLowerCase()] : -vals[b[i].toLowerCase()];
+            return s;
+        }
+
+        function minimax(b, depth, alpha, beta, isMax) {
+            if(depth === 0) return evalBoard(b);
+            let moves = [];
+            for(let i=0; i<80; i++) if(b[i] && isW(b[i])===isMax) getMoves(i,b).forEach(m => moves.push({s:i, t:m}));
+            if(isMax) {
+                let v = -9999;
+                for(let m of moves) {
+                    let old = b[m.t]; b[m.t]=b[m.s]; b[m.s]=null;
+                    v = Math.max(v, minimax(b, depth-1, alpha, beta, false));
+                    b[m.s]=b[m.t]; b[m.t]=old; alpha = Math.max(alpha, v);
+                    if(beta <= alpha) break;
+                }
+                return v;
+            } else {
+                let v = 9999;
+                for(let m of moves) {
+                    let old = b[m.t]; b[m.t]=b[m.s]; b[m.s]=null;
+                    v = Math.min(v, minimax(b, depth-1, alpha, beta, true));
+                    b[m.s]=b[m.t]; b[m.t]=old; beta = Math.min(beta, v);
+                    if(beta <= alpha) break;
+                }
+                return v;
+            }
+        }
+
+        function aiMove() {
             let moves = [];
             for(let i=0; i<80; i++) if(board[i] && !isW(board[i])) getMoves(i, board).forEach(m => moves.push({s:i, t:m}));
             if(moves.length === 0) return finish();
-            let best = moves[Math.floor(Math.random()*moves.length)];
-            // Prioritize captures
-            let captures = moves.filter(m => board[m.t] !== null);
-            if(captures.length > 0) best = captures[Math.floor(Math.random()*captures.length)];
-            execMove(best.s, best.t);
+            let bestMove = null, bestVal = 9999;
+            for(let m of moves) {
+                let old = board[m.t]; board[m.t]=board[m.s]; board[m.s]=null;
+                let v = minimax(board, 2, -10000, 10000, true);
+                board[m.s]=board[m.t]; board[m.t]=old;
+                if(v < bestVal) { bestVal = v; bestMove = m; }
+            }
+            execMove(bestMove.s, bestMove.t);
         }
 
         function execMove(s, t) {
@@ -213,7 +284,7 @@
             if(p==='p' && t%8===0) board[t]='q';
             turn = turn==='w'?'b':'w';
             draw(); checkState();
-            if(turn==='b' && !gameOver) setTimeout(aiTurn, 400);
+            if(turn==='b' && !gameOver) setTimeout(aiMove, 500);
         }
 
         function checkState() {
@@ -226,8 +297,8 @@
             gameOver = true;
             let k = board.findIndex(x => x === (turn==='w'?'K':'k')), inCheck = false;
             for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && moveLegal(i, k, board)) inCheck = true;
-            if(inCheck) { alert(turn==='b' ? "YOU WIN!" : "AI WINS!"); if(turn==='b') updateStats('w'); }
-            else { alert("STALEMATE"); updateStats('d'); }
+            if(inCheck) { alert(turn==='b'?"CHECKMATE - YOU WIN!":"CHECKMATE - AI WINS!"); if(turn==='b') updateScore('w'); }
+            else { alert("STALEMATE"); updateScore('d'); }
             init();
         }
 
@@ -237,7 +308,7 @@
                 for(let f=0; f<10; f++) {
                     ctx.fillStyle = (f+r)%2===0 ? '#f0d9b5' : '#b58863';
                     ctx.fillRect(f*60, (7-r)*60, 60, 60);
-                    if(shadows.includes(idx(f,r))) { ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.beginPath(); ctx.arc(f*60+30, (7-r)*60+30, 10, 0, 7); ctx.fill(); }
+                    if(shadows.includes(idx(f,r))) { ctx.fillStyle = "rgba(0,0,0,0.1)"; ctx.beginPath(); ctx.arc(f*60+30, (7-r)*60+30, 8, 0, 7); ctx.fill(); }
                     let p = board[idx(f,r)];
                     if(p) { ctx.fillStyle = isW(p)?'#fff':'#000'; ctx.font='42px serif'; ctx.textAlign='center'; ctx.fillText(symbols[p], f*60+30, (7-r)*60+44); }
                 }
@@ -247,32 +318,21 @@
             document.getElementById('status').textContent = turn==='w'?"Your Turn":"AI Thinking...";
         }
 
-        // Handle Touch & Click
-        function handleInput(e) {
+        function input(e) {
             if(turn==='b' || gameOver) return;
-            e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            // Calculate scale if canvas is resized by CSS
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            
-            const f = Math.floor(((clientX - rect.left) * scaleX) / 60);
-            const r = 7 - Math.floor(((clientY - rect.top) * scaleY) / 60);
-            const s = idx(f,r);
-
-            if(selected === null) { 
-                if(board[s] && isW(board[s])) { selected = s; shadows = getMoves(s, board); } 
-            } else { 
-                if(shadows.includes(s)) execMove(selected, s); selected = null; shadows = []; 
-            }
+            const r = canvas.getBoundingClientRect();
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
+            const f = Math.floor(((cx-r.left)*(600/r.width))/60);
+            const rIdx = 7-Math.floor(((cy-r.top)*(480/r.height))/60);
+            const s = idx(f,rIdx);
+            if(selected === null) { if(board[s] && isW(board[s])) { selected = s; shadows = getMoves(s, board); } }
+            else { if(shadows.includes(s)) execMove(selected, s); selected = null; shadows = []; }
             draw();
         }
 
-        canvas.addEventListener('touchstart', handleInput, {passive: false});
-        canvas.addEventListener('mousedown', handleInput);
+        canvas.addEventListener('touchstart', e => { e.preventDefault(); input(e); }, {passive:false});
+        canvas.addEventListener('mousedown', input);
 
         init();
     </script>
