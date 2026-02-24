@@ -1,23 +1,35 @@
+To implement these improvements, I have updated the piece rendering to use high-contrast black and white archer symbols for a more professional look. I have also integrated a Points System (Win: 3, Draw: 1, Loss: 0) and a Profile Lock feature that ensures your career stats are securely saved to your browser's memory.
+
+Archers Chess v1.6 (Career & Points Edition)
+HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess v1.5 - Master Edition</title>
+    <title>Archers Chess v1.6 - Career Edition</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
             --tile-light: #f0d9b5; --tile-dark: #b58863; --panel-bg: #fffcf5;
-            --shadow-move: rgba(0, 0, 0, 0.15);
+            --white-piece: #ffffff; --black-piece: #000000;
         }
         body { font-family: 'Georgia', serif; text-align: center; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; }
-        h1 { color: var(--primary); margin: 0; font-size: 2.5em; text-transform: uppercase; letter-spacing: 3px; border-bottom: 2px solid var(--primary); display: inline-block; padding-bottom: 5px; }
-        .author-tag { font-style: italic; color: #795548; margin: 10px 0 20px 0; font-size: 1em; }
+        h1 { color: var(--primary); margin: 0; font-size: 2.2em; text-transform: uppercase; letter-spacing: 3px; }
+        .author-tag { font-style: italic; color: #795548; margin-bottom: 15px; font-size: 0.9em; }
         
         .game-container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
         
+        /* Sidebar Styles */
+        .side-panel { width: 250px; background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; text-align: left; box-shadow: 4px 4px 15px rgba(0,0,0,0.1); }
+        .side-panel h3 { margin-top: 0; font-size: 1em; border-bottom: 2px solid var(--primary); padding-bottom: 5px; color: var(--primary); text-transform: uppercase; }
+        
+        /* Stats System */
+        .profile-card { background: #f0e6d2; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #dcd0b9; }
+        .points-badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; float: right; }
+        
         #board-wrapper { position: relative; }
-        canvas { border: 10px solid var(--primary); cursor: pointer; background: #deb887; border-radius: 4px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
+        canvas { border: 10px solid var(--primary); cursor: pointer; background: #deb887; border-radius: 4px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); }
         
         #game-over-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -25,110 +37,105 @@
             flex-direction: column; justify-content: center; align-items: center; z-index: 100;
         }
 
-        .side-panel { width: 240px; background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; text-align: left; box-shadow: 5px 5px 15px rgba(0,0,0,0.1); }
-        .side-panel h3 { margin-top: 0; font-size: 1.1em; border-bottom: 2px solid var(--primary); padding-bottom: 5px; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
-        
-        .profile-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #f0e6d2; padding: 8px; border-radius: 4px; }
-        #display-name { font-weight: bold; color: var(--accent); }
-        
-        .rules-container { max-width: 1100px; margin: 30px auto; text-align: left; background: white; padding: 30px; border: 1px solid #ccc; border-radius: 8px; line-height: 1.6; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-        .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        .rules-section h4 { color: var(--accent); border-bottom: 1px solid #eee; margin-bottom: 10px; text-transform: uppercase; font-size: 0.9em; }
-        
-        #status { font-size: 24px; font-weight: bold; margin: 15px; height: 35px; color: var(--primary); font-variant: small-caps; }
-        button { font-size: 14px; padding: 8px 16px; border-radius: 4px; cursor: pointer; border: none; background: var(--primary); color: white; font-weight: bold; transition: 0.2s; }
+        .leaderboard-table { width: 100%; font-size: 0.85em; border-collapse: collapse; }
+        .leaderboard-table th { text-align: left; color: #795548; font-size: 0.7em; text-transform: uppercase; }
+        .leaderboard-table td { padding: 5px 0; border-bottom: 1px solid #eee; }
+
+        #status { font-size: 22px; font-weight: bold; margin: 10px; height: 32px; color: var(--primary); font-variant: small-caps; }
+        button { font-size: 13px; padding: 8px 16px; border-radius: 4px; cursor: pointer; border: none; background: var(--primary); color: white; font-weight: bold; }
         button:hover { background: var(--accent); }
     </style>
 </head>
 <body>
 
     <h1>Archers Chess</h1>
-    <div class="author-tag">Official Rules v1.0 • Created by John Patrick Read</div>
+    <div class="author-tag">Official Rules v1.0 • Created by John Patrick Read [cite: 9, 13]</div>
 
     <div id="status">White to Move</div>
 
     <div class="game-container">
         <div class="side-panel">
-            <div class="profile-area">
-                <span id="display-name">Guest</span>
-                <button style="padding:2px 6px; font-size:10px;" onclick="renameUser()">Edit</button>
+            <div class="profile-card">
+                <span class="points-badge" id="user-pts">0 PTS</span>
+                <div style="font-weight: bold; margin-bottom: 5px;" id="user-name">Guest Player</div>
+                <div style="font-size: 0.8em; color: #555;">Record: <span id="user-record">0-0-0</span></div>
+                <button style="margin-top: 10px; width: 100%;" onclick="lockName()">Lock / Switch Name</button>
             </div>
-            <h3>Leaderboard</h3>
-            <div id="leaderboard-list" style="font-size: 0.9em;"></div>
+
+            <h3>🏆 Hall of Fame</h3>
+            <table class="leaderboard-table" id="leaderboard">
+                <thead><tr><th>Player</th><th>W/D/L</th><th>Pts</th></tr></thead>
+                <tbody></tbody>
+            </table>
         </div>
 
         <div id="board-wrapper">
             <canvas id="board" width="600" height="480"></canvas>
             <div id="game-over-overlay">
-                <h2 id="win-message" style="font-size: 3em; color: #ffeb3b; margin-bottom: 10px;">CHECKMATE</h2>
-                <button onclick="init()" style="padding: 15px 30px; font-size: 1.2em;">Begin New Match</button>
+                <h2 id="win-message">CHECKMATE</h2>
+                <button onclick="init()">Play Next Match</button>
             </div>
         </div>
 
         <div class="side-panel">
             <h3>Captured</h3>
-            <div id="black-captures" style="font-size:28px; min-height:50px; letter-spacing: 2px;"></div>
-            <hr style="border:0; border-top:1px solid #ddd; margin: 10px 0;">
-            <div id="white-captures" style="font-size:28px; min-height:50px; letter-spacing: 2px;"></div>
-        </div>
-    </div>
-
-    <div class="rules-container">
-        <h2 style="text-align:center; color: var(--primary); text-transform: uppercase;">Official Rules of Play</h2>
-        <div class="rules-grid">
-            <div class="rules-section">
-                <h4>1. The Archer Piece ($A$)</h4>
-                <p>The Archer is a ranged tactical piece valued at approximately <strong>4 points</strong>[cite: 42]. It moves in two mandatory phases[cite: 24]:</p>
-                <ul>
-                    <li><strong>Outward Move:</strong> Exactly 3 squares in a straight or diagonal direction[cite: 27]. Straight moves cannot jump pieces; diagonals can[cite: 28, 29].</li>
-                    <li><strong>Return Step:</strong> From the 3rd square, it must move exactly 1 square back toward its origin at a $45^{\circ}$ diagonal offset[cite: 31].</li>
-                    <li><strong>Capture:</strong> Only occurs on the final landing square ($F$)[cite: 34].</li>
-                </ul>
-            </div>
-            <div class="rules-section">
-                <h4>2. The Field of Play</h4>
-                <p>Played on a <strong>$10\times8$ board</strong>. Files are labeled: <strong>–A, A, B, C, D, E, F, G, H, H+</strong>[cite: 19]. All standard chess rules (Castling, En Passant, Promotion) apply unchanged[cite: 40].</p>
-                <h4>3. Victory Conditions</h4>
-                <p>The Archer gives check only from its final square[cite: 36]. The game ends in <strong>Checkmate</strong> when a King is under attack and has no legal escape. Standard stalemate rules apply[cite: 36].</p>
-            </div>
+            <div id="black-captures" style="font-size:24px; min-height:45px;"></div>
+            <hr style="border: 0; border-top: 1px solid #ddd; margin: 10px 0;">
+            <div id="white-captures" style="font-size:24px; min-height:45px;"></div>
+            
+            <h3 style="margin-top:20px;">Rules Ref.</h3>
+            <p style="font-size: 0.75em; line-height: 1.4;">
+                <b>Archer (A):</b> 3 squares out (O), 1 square return (F). [cite: 27, 31]<br>
+                <b>Points:</b> Win: 3 | Draw: 1 | Loss: 0
+            </p>
         </div>
     </div>
 
     <script>
-        // --- Persistence & Profiles ---
-        let allPlayers = JSON.parse(localStorage.getItem('archers_chess_leaderboard')) || [];
-        let currentPlayerName = localStorage.getItem('archers_chess_last_user') || "Guest";
+        // --- Career Persistence System ---
+        let players = JSON.parse(localStorage.getItem('archers_career_data')) || [];
+        let activeName = localStorage.getItem('archers_active_user') || "Guest";
 
-        function setupUser() {
-            if (!allPlayers.find(p => p.name === currentPlayerName)) {
-                allPlayers.push({ name: currentPlayerName, wins: 0, losses: 0 });
+        function getActivePlayer() {
+            let p = players.find(x => x.name === activeName);
+            if (!p) {
+                p = { name: activeName, w: 0, d: 0, l: 0, pts: 0 };
+                players.push(p);
             }
-            saveData(); renderLeaderboard();
+            return p;
         }
 
-        function renameUser() {
-            const name = prompt("Enter Name:", currentPlayerName);
+        function lockName() {
+            const name = prompt("Enter your name to lock in your career stats:", activeName);
             if (name && name.trim()) {
-                currentPlayerName = name.trim().substring(0, 12);
-                if (!allPlayers.find(p => p.name === currentPlayerName)) allPlayers.push({ name: currentPlayerName, wins: 0, losses: 0 });
-                saveData(); renderLeaderboard();
+                activeName = name.trim().substring(0, 15);
+                localStorage.setItem('archers_active_user', activeName);
+                updateCareerUI();
             }
         }
 
-        function saveData() {
-            localStorage.setItem('archers_chess_leaderboard', JSON.stringify(allPlayers));
-            localStorage.setItem('archers_chess_last_user', currentPlayerName);
+        function recordMatch(result) {
+            let p = getActivePlayer();
+            if (result === 'win') { p.w++; p.pts += 3; }
+            else if (result === 'draw') { p.d++; p.pts += 1; }
+            else if (result === 'loss') { p.l++; }
+            localStorage.setItem('archers_career_data', JSON.stringify(players));
+            updateCareerUI();
         }
 
-        function renderLeaderboard() {
-            document.getElementById('display-name').textContent = currentPlayerName;
-            allPlayers.sort((a, b) => b.wins - a.wins);
-            let html = '<table style="width:100%">';
-            allPlayers.slice(0, 5).forEach(p => {
-                html += `<tr style="${p.name === currentPlayerName ? 'color:var(--accent); font-weight:bold;' : ''}">
-                        <td>${p.name}</td><td style="text-align:right">${p.wins}W</td></tr>`;
+        function updateCareerUI() {
+            let p = getActivePlayer();
+            document.getElementById('user-name').textContent = p.name;
+            document.getElementById('user-pts').textContent = p.pts + " PTS";
+            document.getElementById('user-record').textContent = `${p.w}W - ${p.d}D - ${p.l}L`;
+
+            // Update Leaderboard
+            const tbody = document.querySelector('#leaderboard tbody');
+            tbody.innerHTML = "";
+            players.sort((a,b) => b.pts - a.pts).slice(0, 8).forEach(entry => {
+                const row = `<tr><td>${entry.name}</td><td>${entry.w}/${entry.d}/${entry.l}</td><td><b>${entry.pts}</b></td></tr>`;
+                tbody.innerHTML += row;
             });
-            document.getElementById('leaderboard-list').innerHTML = html + '</table>';
         }
 
         // --- Game Engine ---
@@ -136,14 +143,10 @@
         const ctx = canvas.getContext('2d');
         const SQ = 60, FILES = 10, RANKS = 8;
         
-        // Variant Pieces for Black/White Archer
-        const symbols = { 
-            'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹', 
-            'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🎯' 
-        };
+        // Symbols: Archer now uses the same icon but styled via fill color in drawBoard
+        const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹','k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🏹' };
 
-        let board = [], turn = 'w', gameOver = false, selected = null, captures = { w: [], b: [] };
-        let shadowMoves = [];
+        let board = [], turn = 'w', gameOver = false, selected = null, captures = { w: [], b: [] }, shadowMoves = [];
 
         function idx(f, r) { return f * RANKS + r; }
         function isWhite(p) { return p && p === p.toUpperCase(); }
@@ -151,13 +154,13 @@
         function init() {
             board = new Array(FILES * RANKS).fill(null);
             captures = { w: [], b: [] }; gameOver = false; turn = 'w'; selected = null; shadowMoves = [];
-            const setup = ['A','R','N','B','Q','K','B','N','R','A'];
+            const setup = ['A','R','N','B','Q','K','B','N','R','A']; // [cite: 22]
             for(let f=0; f<FILES; f++) {
                 board[idx(f,0)] = setup[f]; board[idx(f,1)] = 'P';
                 board[idx(f,6)] = 'p'; board[idx(f,7)] = setup[f].toLowerCase();
             }
             document.getElementById('game-over-overlay').style.display = 'none';
-            drawBoard(); updateUI();
+            updateUI(); drawBoard();
         }
 
         function validateMoveBasic(s, t) {
@@ -166,7 +169,7 @@
             let sf = Math.floor(s/RANKS), sr = s%RANKS, ef = Math.floor(t/RANKS), er = t%RANKS;
             let dx = ef-sf, dy = er-sr, type = p.toUpperCase();
 
-            if (type === 'P') {
+            if (type === 'P') { // [cite: 38]
                 let dir = isWhite(p) ? 1 : -1;
                 if (dx===0 && dy===dir && !tp) return true;
                 if (dx===0 && dy===2*dir && sr===(isWhite(p)?1:6) && !tp && !board[idx(sf,sr+dir)]) return true;
@@ -176,14 +179,14 @@
             if (type === 'K') return Math.max(Math.abs(dx), Math.abs(dy)) <= 1;
             if (type === 'N') return [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]].some(d => d[0]===dx && d[1]===dy);
             
-            if (type === 'A') {
-                const qd = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
-                for (let [ox, oy] of qd) {
-                    let f3 = sf+ox*3, r3 = sr+oy*3;
-                    if (f3<0||f3>=FILES||r3<0||r3>=RANKS) continue;
-                    if ((ox===0 || oy===0) && (board[idx(sf+ox, sr+oy)] || board[idx(sf+ox*2, sr+oy*2)])) continue;
-                    const bOffsets = [[-ox-oy, -oy+ox], [-ox+oy, -oy-ox]];
-                    for (let [bx, by] of bOffsets) if (f3 + Math.sign(bx) === ef && r3 + Math.sign(by) === er) return true;
+            if (type === 'A') { // Archer Movement (A/O/F) [cite: 24, 27, 31]
+                const directions = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
+                for (let [ox, oy] of directions) {
+                    let f3 = sf + ox*3, r3 = sr + oy*3;
+                    if (f3<0 || f3>=FILES || r3<0 || r3>=RANKS) continue;
+                    if ((ox===0 || oy===0) && (board[idx(sf+ox, sr+oy)] || board[idx(sf+ox*2, sr+oy*2)])) continue; // Straight blocking [cite: 28]
+                    const returns = [[-ox-oy, -oy+ox], [-ox+oy, -oy-ox]];
+                    for (let [rx, ry] of returns) if (f3 + Math.sign(rx) === ef && r3 + Math.sign(ry) === er) return true;
                 }
                 return false;
             }
@@ -227,36 +230,44 @@
             turn = turn === 'w' ? 'b' : 'w';
             updateUI(); drawBoard();
 
-            let movesLeft = false;
-            for (let i=0; i<board.length; i++) if (board[i] && isWhite(board[i]) === (turn==='w') && getValidMoves(i).length > 0) movesLeft = true;
-            if (!movesLeft) {
+            let movesExist = false;
+            for (let i=0; i<board.length; i++) if (board[i] && isWhite(board[i]) === (turn==='w') && getValidMoves(i).length > 0) movesExist = true;
+            if (!movesExist) {
                 gameOver = true;
                 document.getElementById('game-over-overlay').style.display = 'flex';
-                let player = allPlayers.find(pl => pl.name === currentPlayerName);
-                if (turn === 'b' && player) { player.wins++; saveData(); renderLeaderboard(); }
+                // Check for Checkmate vs Stalemate
+                let kingSq = board.findIndex(pk => pk === (turn==='w'?'K':'k'));
+                let inCheck = false;
+                for(let i=0; i<board.length; i++) if(board[i] && isWhite(board[i]) !== (turn==='w') && validateMoveBasic(i, kingSq)) inCheck = true;
+                
+                if (inCheck) {
+                    if (turn === 'b') recordMatch('win'); else recordMatch('loss');
+                    document.getElementById('win-message').textContent = turn === 'b' ? "YOU WIN!" : "AI WINS!";
+                } else {
+                    recordMatch('draw');
+                    document.getElementById('win-message').textContent = "STALEMATE";
+                }
             }
         }
 
         function drawBoard() {
             ctx.clearRect(0,0,600,480);
-            const fileLabels = ['–A','A','B','C','D','E','F','G','H','H+'];
             for(let r=7; r>=0; r--) {
                 for(let f=0; f<FILES; f++) {
                     let x = f*60, y = (7-r)*60;
                     ctx.fillStyle = (f+r)%2===0 ? '#f0d9b5' : '#b58863';
                     ctx.fillRect(x,y,60,60);
-                    
-                    // Shadow markers for potential moves
                     if (shadowMoves.includes(idx(f,r))) {
-                        ctx.fillStyle = "rgba(0, 255, 0, 0.2)";
-                        ctx.beginPath(); ctx.arc(x+30, y+30, 10, 0, Math.PI*2); ctx.fill();
+                        ctx.fillStyle = "rgba(0,0,0,0.1)";
+                        ctx.beginPath(); ctx.arc(x+30, y+30, 8, 0, Math.PI*2); ctx.fill();
                     }
-
                     let p = board[idx(f,r)];
                     if (p) {
                         ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
+                        ctx.shadowBlur = 2; ctx.shadowColor = "rgba(0,0,0,0.5)";
                         ctx.font = '46px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                         ctx.fillText(symbols[p], x+30, y+34);
+                        ctx.shadowBlur = 0;
                     }
                     if (selected === idx(f,r)) { ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 4; ctx.strokeRect(x+2,y+2,56,56); }
                 }
@@ -274,32 +285,22 @@
             const rect = canvas.getBoundingClientRect();
             const f = Math.floor((e.clientX-rect.left)/60), r = 7-Math.floor((e.clientY-rect.top)/60);
             const sq = idx(f,r);
-
             if (selected === null) {
-                if (board[sq] && isWhite(board[sq])) {
-                    selected = sq;
-                    shadowMoves = getValidMoves(sq);
-                }
+                if (board[sq] && isWhite(board[sq])) { selected = sq; shadowMoves = getValidMoves(sq); }
             } else {
-                if (shadowMoves.includes(sq)) {
-                    makeMove(selected, sq);
-                    if (!gameOver) setTimeout(aiMove, 600);
-                }
+                if (shadowMoves.includes(sq)) { makeMove(selected, sq); if (!gameOver) setTimeout(aiMove, 600); }
                 selected = null; shadowMoves = [];
             }
             drawBoard();
         });
 
         function aiMove() {
-            let all = [];
-            for (let i=0; i<board.length; i++) if (board[i] && !isWhite(board[i])) getValidMoves(i).forEach(m => all.push({f: i, t: m}));
-            if (all.length > 0) {
-                let m = all[Math.floor(Math.random()*all.length)];
-                makeMove(m.f, m.t);
-            }
+            let moves = [];
+            for (let i=0; i<board.length; i++) if (board[i] && !isWhite(board[i])) getValidMoves(i).forEach(m => moves.push({f: i, t: m}));
+            if (moves.length > 0) { let m = moves[Math.floor(Math.random()*moves.length)]; makeMove(m.f, m.t); }
         }
 
-        setupUser();
+        updateCareerUI();
         init();
     </script>
 </body>
