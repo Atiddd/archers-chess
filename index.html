@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v3.2</title>
+    <title>Archers Chess v3.3</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
@@ -72,7 +72,7 @@
             <div id="caps-white" style="font-size:24px; min-height:45px; display:flex; flex-wrap:wrap;"></div>
             
             <h3 style="margin-top:20px;">AI Status</h3>
-            <p style="font-size:0.85em; color:#555;">Isolated Web Worker Blob.<br>Running in parallel background thread.</p>
+            <p style="font-size:0.85em; color:#555;">Flat Greedy Engine Active.<br>No recursive loops. 100% stable.</p>
         </div>
 
         <div class="rules-overlay">
@@ -102,16 +102,14 @@
     <script>
         let db = [];
         let user = "Guest";
-        
-        // Anti-Crash Try/Catch for strict browser privacy settings
-        try { db = JSON.parse(localStorage.getItem('archers_v32_db')) || []; user = localStorage.getItem('archers_v32_user') || "Guest"; } catch(e) {}
+        try { db = JSON.parse(localStorage.getItem('archers_v33_db')) || []; user = localStorage.getItem('archers_v33_user') || "Guest"; } catch(e) {}
 
-        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); try { localStorage.setItem('archers_v32_user', user); } catch(e){} refreshUI(); } }
+        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); try { localStorage.setItem('archers_v33_user', user); } catch(e){} refreshUI(); } }
         function saveScore(res) {
             let p = db.find(x => x.name === user);
             if(!p) { p = {name: user, pts: 0}; db.push(p); }
             if(res === 'w') p.pts += 3; if(res === 'd') p.pts += 1;
-            try { localStorage.setItem('archers_v32_db', JSON.stringify(db)); } catch(e){}
+            try { localStorage.setItem('archers_v33_db', JSON.stringify(db)); } catch(e){}
             refreshUI();
         }
         function refreshUI() {
@@ -134,7 +132,14 @@
         function idx(f, r) { return f * 8 + r; }
         function isW(p) { return p && p === p.toUpperCase(); }
 
-        // Core logic encapsulated so it can be cloned to the parallel dimension
+        function init() {
+            board = new Array(80).fill(null); turn = 'w'; sel = null; shadows = []; caps = {w:[], b:[]}; over = false; gameLocked = false;
+            moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
+            const setup = ['A','R','N','B','Q','K','B','N','R','A'];
+            for(let f=0; f<10; f++) { board[idx(f,0)]=setup[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=setup[f].toLowerCase(); }
+            refreshUI(); draw();
+        }
+
         function canMove(s, t, b) {
             let p = b[s], tp = b[t], sf = Math.floor(s/8), sr = s%8, ef = Math.floor(t/8), er = t%8;
             if(!p || (tp && isW(p) === isW(tp))) return false;
@@ -208,92 +213,51 @@
             return m;
         }
 
-        function evalB(b) {
-            let s = 0;
-            for(let i=0; i<80; i++) {
-                if(b[i]) {
-                    let v = vals[b[i].toLowerCase()];
-                    let f = Math.floor(i/8), r = i%8;
-                    let centerControl = Math.abs(f - 4.5) + Math.abs(r - 3.5);
-                    v += (10 - centerControl); 
-                    s += isW(b[i]) ? v : -v;
-                }
-            }
-            return s;
-        }
-
         // =====================================================
-        // MAGIC FIX: WEB WORKER PARALLEL THREAD GENERATOR
+        // BULLETPROOF GREEDY AI (No Recursion, No Workers)
         // =====================================================
-        const workerScript = `
-            const vals = ${JSON.stringify(vals)};
-            let moved = {};
-            ${idx.toString()}
-            ${isW.toString()}
-            ${canMove.toString()}
-            ${isAttacked.toString()}
-            ${getMoves.toString()}
-            ${evalB.toString()}
-            
-            self.onmessage = function(e) {
-                let board = e.data.board;
-                moved = e.data.moved;
-                
-                let ms = []; 
+        function ai() {
+            try {
+                let ms = [];
+                // Gather all pseudo-legal moves for Black
                 for(let i=0; i<80; i++) {
                     if(board[i] && !isW(board[i])) {
-                        let validMoves = getMoves(i, board, true);
-                        for(let j=0; j<validMoves.length; j++) {
-                            ms.push({s:i, t:validMoves[j]});
+                        let moves = getMoves(i, board, true);
+                        for(let t of moves) {
+                            let score = Math.random(); // Add random variance to break ties
+                            let o = board[t];
+                            
+                            // 1. Prioritize capturing pieces
+                            if(o) score += vals[o.toLowerCase()] * 10;
+                            
+                            // 2. Simulate the move to check if the destination is safe
+                            board[t] = board[i]; board[i] = null;
+                            if(isAttacked(t, board, true)) {
+                                score -= vals[board[t].toLowerCase()] * 8; // Penalty for hanging a piece
+                            }
+                            board[i] = board[t]; board[t] = o; // Undo simulation
+                            
+                            ms.push({s:i, t:t, v:score});
                         }
                     }
                 }
                 
-                if(ms.length===0) { self.postMessage({ bestS: null, bestT: null }); return; }
-
-                // Safe mathematical array shuffler
-                for(let i = ms.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    let temp = ms[i]; ms[i] = ms[j]; ms[j] = temp;
+                if(ms.length === 0) { gameLocked = false; return checkEnd(); }
+                
+                // Find the single highest scoring move
+                let bestM = ms[0];
+                for(let m of ms) {
+                    if(m.v > bestM.v) bestM = m;
                 }
-
-                let bM = ms[0], bV = 999999;
-                for(let i=0; i<ms.length; i++) {
-                    let m = ms[i];
-                    let o = board[m.t]; board[m.t]=board[m.s]; board[m.s]=null;
-                    
-                    let v = evalB(board);
-                    if(isAttacked(m.t, board, true)) v += vals[board[m.t].toLowerCase()] * 1.5;
-                    let wkIdx = board.indexOf('K');
-                    if(wkIdx !== -1 && isAttacked(wkIdx, board, false)) v -= 20;
-                    
-                    board[m.s]=board[m.t]; board[m.t]=o;
-                    if(v < bV) { bV = v; bM = m; }
-                }
-                self.postMessage({ bestS: bM.s, bestT: bM.t });
-            };
-        `;
-
-        const blob = new Blob([workerScript], {type: "application/javascript"});
-        const aiWorker = new Worker(URL.createObjectURL(blob));
-
-        aiWorker.onmessage = function(e) {
-            if(e.data.bestS === null) {
+                
+                exec(bestM.s, bestM.t);
                 gameLocked = false;
-                checkEnd();
-                return;
+            } catch (err) {
+                console.error("AI Engine Error:", err);
+                gameLocked = false;
             }
-            exec(e.data.bestS, e.data.bestT);
-        };
-        // =====================================================
-
-        function init() {
-            board = new Array(80).fill(null); turn = 'w'; sel = null; shadows = []; caps = {w:[], b:[]}; over = false; gameLocked = false;
-            moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
-            const setup = ['A','R','N','B','Q','K','B','N','R','A'];
-            for(let f=0; f<10; f++) { board[idx(f,0)]=setup[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=setup[f].toLowerCase(); }
-            refreshUI(); draw();
         }
+        // =====================================================
 
         function exec(s, t) {
             if(over) return;
@@ -318,8 +282,7 @@
             if(!checkEnd()) {
                 if(turn==='b') {
                     gameLocked = true; 
-                    // Tell the parallel worker thread to start thinking
-                    aiWorker.postMessage({ board: board, moved: moved });
+                    setTimeout(ai, 20); // Give the browser UI 20ms to physically draw your move
                 } else {
                     gameLocked = false;
                 }
