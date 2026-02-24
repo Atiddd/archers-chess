@@ -3,56 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v6.5</title>
+    <title>Archers Chess v6.6</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
             --tile-light: #f0d9b5; --tile-dark: #b58863; --panel-bg: #fffcf5;
         }
-        /* RESTORE SCROLLING - Removed global locks */
         html, body { overflow-x: hidden; width: 100%; height: 100%; -webkit-overflow-scrolling: touch; }
-        
         body { font-family: 'Georgia', serif; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        
         header { text-align: center; margin-bottom: 15px; }
         h1 { color: var(--primary); margin: 0; font-size: 2.2em; text-transform: uppercase; letter-spacing: 3px; border-bottom: 2px solid var(--primary); display: inline-block; }
         .author { font-style: italic; color: #795548; margin-top: 5px; }
-
         .game-layout { display: grid; grid-template-columns: 260px 660px 260px; gap: 20px; max-width: 1250px; width: 100%; }
-
         .side-panel { background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); height: fit-content; display: flex; flex-direction: column; }
         .side-panel h3 { margin: 0 0 10px 0; font-size: 1.1em; border-bottom: 1px solid var(--primary); text-transform: uppercase; }
-        
         .user-box { background: #efe6d5; padding: 12px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #dcd0b9; }
         .leaderboard-table { width: 100%; font-size: 0.85em; border-collapse: collapse; }
         .leaderboard-table tr:nth-child(even) { background: #f9f5eb; }
-
         #board-center { display: flex; flex-direction: column; align-items: center; }
         #status { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; text-align: center; }
-        
-        /* ONLY THE CANVAS BLOCKS SCROLLING while dragging */
         canvas { border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; touch-action: none; cursor: grab; max-width: 100%; height: auto; }
-
         .move-history { background: white; border: 1px solid #ccc; border-radius: 4px; padding: 5px; height: 180px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.9em; margin-bottom: 15px; }
         .move-row { display: flex; padding: 2px 0; border-bottom: 1px solid #f0f0f0; }
         .move-num { width: 30px; color: #888; text-align: right; padding-right: 10px; }
         .move-w, .move-b { width: 45%; font-weight: bold; }
-        
         .rules-overlay { grid-column: 1 / span 3; background: white; padding: 25px; border-radius: 8px; border: 1px solid #ccc; margin-top: 30px; line-height: 1.6; }
         .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
         .rules-overlay h2 { text-align: center; margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-        
         select, button { width: 100%; padding: 8px; font-size: 0.95rem; font-family: inherit; margin-top: 5px; cursor: pointer; border-radius: 4px; border: 1px solid var(--primary); }
         button { background: var(--primary); color: white; font-weight: bold; border: none; padding: 10px; }
-
-        @media (max-width: 1000px) {
-            .game-layout { display: flex; flex-direction: column; }
-            .side-panel { width: calc(100% - 30px); order: 2; margin-bottom: 10px; }
-            #board-center { order: 1; margin-bottom: 10px; }
-            .rules-grid { grid-template-columns: 1fr; gap: 20px; }
-            .rules-overlay { order: 3; }
-        }
-
+        @media (max-width: 1000px) { .game-layout { display: flex; flex-direction: column; } .side-panel { width: calc(100% - 30px); order: 2; margin-bottom: 10px; } #board-center { order: 1; margin-bottom: 10px; } .rules-grid { grid-template-columns: 1fr; gap: 20px; } .rules-overlay { order: 3; } }
         .ai-thinking { color: var(--accent) !important; animation: pulse 1s infinite; }
         .check-alert { color: #ff0000 !important; animation: shake 0.5s; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
@@ -60,85 +40,43 @@
     </style>
 </head>
 <body>
-
-    <header>
-        <h1>Archers Chess</h1>
-        <div class="author">Official Rules v1.0 • Created by John Patrick Read</div>
-    </header>
-
+    <header><h1>Archers Chess</h1><div class="author">Official Rules v1.0 • Created by John Patrick Read</div></header>
     <div class="game-layout">
         <div class="side-panel">
-            <div class="user-box">
-                <div id="u-name" style="font-weight:bold;">Guest</div>
-                <div id="u-pts" style="font-size:0.9em; color:#795548; margin-bottom:8px;">0 Points</div>
-                <button onclick="doLogin()">New Player / Login</button>
-            </div>
+            <div class="user-box"><div id="u-name" style="font-weight:bold;">Guest</div><div id="u-pts" style="font-size:0.9em; color:#795548; margin-bottom:8px;">0 Points</div><button onclick="doLogin()">New Player / Login</button></div>
             <h3>Opponent Level</h3>
             <select id="ai-diff" style="margin-bottom: 10px;">
                 <option value="1">Level 1 (Novice - 1pt)</option>
                 <option value="2" selected>Level 2 (Warrior - 3pts)</option>
                 <option value="3">Level 3 (Master - 5pts)</option>
             </select>
-            <div style="display: flex; gap: 5px;">
-                <button onclick="initGame()">Restart</button>
-                <button id="btn-concede" onclick="concede()" style="background: var(--accent);">Concede</button>
-            </div>
+            <div style="display: flex; gap: 5px;"><button onclick="initGame()">Restart</button><button id="btn-concede" onclick="concede()" style="background: var(--accent);">Concede</button></div>
         </div>
-
-        <div id="board-center">
-            <div id="status">Your Turn (White)</div>
-            <canvas id="board" width="660" height="520"></canvas>
-        </div>
-
+        <div id="board-center"><div id="status">Your Turn (White)</div><canvas id="board" width="660" height="520"></canvas></div>
         <div class="side-panel">
-            <h3>Move History</h3>
-            <div class="move-history" id="move-history"></div>
+            <h3>Move History</h3><div class="move-history" id="move-history"></div>
             <h3>Captured Pieces</h3>
-            <div id="caps-black" style="font-size:24px; min-height:35px; display:flex; flex-wrap:wrap;"></div>
-            <hr style="border:0.5px solid #ddd; margin:10px 0;">
-            <div id="caps-white" style="font-size:24px; min-height:35px; display:flex; flex-wrap:wrap;"></div>
-            <h3 style="margin-top:10px;">Top 10 Hall</h3>
-            <table class="leaderboard-table" id="hall-of-fame"><tbody></tbody></table>
+            <div id="caps-black" style="font-size:24px; min-height:35px; display:flex; flex-wrap:wrap;"></div><hr style="border:0.5px solid #ddd; margin:10px 0;"><div id="caps-white" style="font-size:24px; min-height:35px; display:flex; flex-wrap:wrap;"></div>
+            <h3 style="margin-top:10px;">Top 10 Hall</h3><table class="leaderboard-table" id="hall-of-fame"><tbody></tbody></table>
         </div>
-
         <div class="rules-overlay">
             <h2>Official Rules of Play</h2>
             <div class="rules-grid">
-                <div>
-                    <strong style="color:var(--accent);">The Archer Piece (A):</strong>
-                    <p>A tactical ranged piece moving in two phases: 3 squares outward (O) and 1 diagonal return step (F). 
-                    Captures and checks ONLY occur on the final square (F). Straight moves are blocked by pieces; diagonal moves can jump.</p>
-                    
-                    <strong style="color:var(--accent);">The Board:</strong>
-                    <p>Played on a 10x8 grid. Files: -A, A, B, C, D, E, F, G, H, H+.</p>
-                </div>
-                <div>
-                    <strong style="color:var(--accent);">Scoring & Victory:</strong>
-                    <ul>
-                        <li><strong>Novice Win:</strong> 1 Point | <strong>Draw:</strong> 0 Points.</li>
-                        <li><strong>Warrior Win:</strong> 3 Points | <strong>Draw:</strong> 1 Point.</li>
-                        <li><strong>Master Win:</strong> 5 Points | <strong>Draw:</strong> 2 Points.</li>
-                    </ul>
-                    <strong style="color:var(--accent);">Piece Values:</strong>
-                    <p>Archer: 4 | Rook: 5 | Bishop/Knight: 3 | Pawn: 1.</p>
-                </div>
+                <div><strong style="color:var(--accent);">The Archer Piece (A):</strong><p>A tactical ranged piece moving in two phases: 3 squares outward (O) and 1 diagonal return step (F). Captures and checks ONLY occur on the final square (F). Straight moves are blocked by pieces; diagonal moves can jump.</p><strong style="color:var(--accent);">The Board:</strong><p>Played on a 10x8 grid. Files: -A, A, B, C, D, E, F, G, H, H+.</p></div>
+                <div><strong style="color:var(--accent);">Scoring & Victory:</strong><ul><li><strong>Novice Win:</strong> 1 Point | <strong>Draw:</strong> 0 Points.</li><li><strong>Warrior Win:</strong> 3 Points | <strong>Draw:</strong> 1 Point.</li><li><strong>Master Win:</strong> 5 Points | <strong>Draw:</strong> 2 Points.</li></ul><strong style="color:var(--accent);">Piece Values:</strong><p>Archer: 4 | Rook: 5 | Bishop/Knight: 3 | Pawn: 1.</p></div>
             </div>
         </div>
     </div>
-
     <script>
-        // LOGIC PRESERVED FROM BLUEPRINT
         let db = []; let user = "Guest";
-        try { db = JSON.parse(localStorage.getItem('archers_v65_db')) || []; user = localStorage.getItem('archers_v65_user') || "Guest"; } catch(e) {}
-
-        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); try { localStorage.setItem('archers_v65_user', user); } catch(e){} refreshUI(); } }
+        try { db = JSON.parse(localStorage.getItem('archers_v66_db')) || []; user = localStorage.getItem('archers_v66_user') || "Guest"; } catch(e) {}
+        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v66_user', user); refreshUI(); } }
         function saveScore(res) {
             let p = db.find(x => x.name === user); if(!p) { p = {name: user, pts: 0}; db.push(p); }
             let diff = parseInt(document.getElementById('ai-diff').value);
             if(res === 'w') { p.pts += (diff === 1 ? 1 : diff === 2 ? 3 : 5); } 
             else if(res === 'd') { p.pts += (diff === 2 ? 1 : diff === 3 ? 2 : 0); }
-            try { localStorage.setItem('archers_v65_db', JSON.stringify(db)); } catch(e){}
-            refreshUI();
+            localStorage.setItem('archers_v66_db', JSON.stringify(db)); refreshUI();
         }
         function refreshUI() {
             document.getElementById('u-name').textContent = user;
@@ -147,7 +85,6 @@
             let sorted = [...db].sort((a,b) => b.pts - a.pts).slice(0,10);
             document.getElementById('hall-of-fame').innerHTML = sorted.map((s,i) => `<tr><td>${i+1}. ${s.name}</td><td style="text-align:right"><b>${s.pts}</b></td></tr>`).join('');
         }
-
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(t) {
             if(audioCtx.state==='suspended') audioCtx.resume();
@@ -157,12 +94,10 @@
             else if(t==='capture'){ o.type='square'; o.frequency.setValueAtTime(200,n); g.gain.exponentialRampToValueAtTime(0.01,n+0.2); o.start(); o.stop(n+0.2); }
             else if(t==='check'){ o.type='triangle'; o.frequency.setValueAtTime(500,n); g.gain.exponentialRampToValueAtTime(0.01,n+0.3); o.start(); o.stop(n+0.3); }
         }
-
         const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
         const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':"\u{1F3F9}\u{FE0E}", 'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':"\u{1F3F9}\u{FE0E}" };
         const files = ["-A","A","B","C","D","E","F","G","H","H+"];
-
-        let board = Array(80).fill(null), turn = 'w', sel = null, gameActive = false, validMoves = [], caps = {w:[], b:[]}, moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
+        let board = Array(80).fill(null), turn = 'w', sel = null, gameActive = false, validMoves = [], caps = {w:[], b:[]}, moved = { wK:false, bK:false };
         let moveHistory = [], dragging = false, dragOrigin = null, pointerX = 0, pointerY = 0;
 
         function idx(f, r) { return f * 8 + r; }
@@ -195,8 +130,16 @@
                 if(!attacksOnly && isWhite && !moved.wK){ if(!b[idx(2,0)]&&!b[idx(3,0)]&&!b[idx(4,0)]) mvs.push(idx(3,0)); if(!b[idx(6,0)]&&!b[idx(7,0)]) mvs.push(idx(7,0)); }
             } else if(type==='A'){
                 for(let [ox,oy] of [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]){
-                    if((ox===0||oy===0)&&(b[idx(f+ox,r+oy)]||b[idx(f+ox*2,r+oy*2)]))continue;
-                    let f3=f+ox*3, r3=r+oy*3; for(let [rx,ry] of [[-ox-oy,-oy+ox],[-ox+oy,-oy-ox]]) add(f3+Math.sign(rx),r3+Math.sign(ry));
+                    // FIX: Check all 3 steps for blockers
+                    let block = false;
+                    for(let s=1; s<=3; s++) {
+                        let cf = f+ox*s, cr = r+oy*s;
+                        if(cf<0||cf>9||cr<0||cr>7) { block=true; break; } // Cannot go off board
+                        if((ox===0||oy===0) && b[idx(cf,cr)]) { block=true; break; } // Straight blocked by ANY piece on 1,2, or 3
+                    }
+                    if(block) continue;
+                    let f3=f+ox*3, r3=r+oy*3;
+                    for(let [rx,ry] of [[-ox-oy,-oy+ox],[-ox+oy,-oy-ox]]) add(f3+Math.sign(rx),r3+Math.sign(ry));
                 }
             } else {
                 let dirs=(type==='R'?[[0,1],[0,-1],[1,0],[-1,0]]:type==='B'?[[1,1],[1,-1],[-1,1],[-1,-1]]:[[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]);
@@ -285,7 +228,7 @@
         canvas.addEventListener('pointermove',(e)=>{ if(dragging){const c=getCoords(e); pointerX=c.x; pointerY=c.y; draw();} });
         canvas.addEventListener('pointerup',(e)=>{ if(!dragging)return; dragging=false; canvas.releasePointerCapture(e.pointerId); const c=getCoords(e); const f=Math.floor((c.x-30)/60), r=7-Math.floor((c.y-10)/60), target=idx(f,r); if(target!==dragOrigin){ let m=validMoves.find(mv=>mv.t===target); if(m)processMove(dragOrigin,target,m.isCastle); else {sel=null;validMoves=[];draw();} } else draw(); });
 
-        initGame();
+        initGame(); refreshUI();
     </script>
 </body>
 </html>
