@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v2.4</title>
+    <title>Archers Chess v2.5</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
@@ -23,7 +23,7 @@
         .user-box { background: #efe6d5; padding: 12px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #dcd0b9; }
 
         #board-center { display: flex; flex-direction: column; align-items: center; }
-        #status { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; }
+        #status { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; }
         
         canvas { border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; cursor: pointer; touch-action: none; }
 
@@ -41,7 +41,7 @@
 
     <header>
         <h1>Archers Chess</h1>
-        [cite_start]<div class="author">Official Rules v1.0 • Created by John Patrick Read [cite: 9]</div>
+        <div class="author">Official Rules v1.0 • Created by John Patrick Read</div>
     </header>
 
     <div class="game-layout">
@@ -51,7 +51,7 @@
                 <div id="u-pts" style="font-size:0.9em; color:#795548; margin-bottom:8px;">0 Points</div>
                 <button onclick="doLogin()">New Player / Login</button>
             </div>
-            <h3>🏆 Top Hall</h3>
+            <h3>🏆 Leaderboard</h3>
             <div id="hall-of-fame" style="font-size:0.9em;"></div>
         </div>
 
@@ -61,28 +61,28 @@
         </div>
 
         <div class="side-panel">
-            <h3>Captured</h3>
+            <h3>Captured Pieces</h3>
             <div id="caps-black" style="font-size:24px; min-height:45px;"></div>
             <hr style="border:0.5px solid #ddd; margin:10px 0;">
             <div id="caps-white" style="font-size:24px; min-height:45px;"></div>
-            <h3 style="margin-top:20px;">Rules Ref</h3>
-            [cite_start]<p style="font-size:0.8em; color:#555;">Archer Value: 4 [cite: 42][cite_start]<br>Castling: King moves 2 squares[cite: 40].</p>
+            <h3 style="margin-top:20px;">AI Strategy</h3>
+            <p style="font-size:0.8em; color:#555;">Level 2 Minimax Engine.<br>Optimized for Archer tactical calculation.</p>
         </div>
 
         <div class="rules-overlay">
-            [cite_start]<h2>Official Rules of Play [cite: 11]</h2>
+            <h2>Official Rules of Play</h2>
             <div class="rules-grid">
                 <div>
-                    <strong style="color:var(--accent);">The Archer Piece (A):</strong>
-                    [cite_start]<p>A ranged piece moving 3 squares outward (O) then 1 square diagonal return (F)[cite: 24, 27, 31]. [cite_start]Captures/Checks only on F[cite: 33, 35]. Diagonals jump; [cite_start]Straights are blocked[cite: 28, 29].</p>
+                    <strong style="color:var(--accent);">The Archer (A):</strong>
+                    <p>Moves exactly 3 squares outward (O) in a straight or diagonal line, then takes 1 diagonal return step (F). Captures and Checks occur only on the final square. Diagonal moves can jump pieces; straight moves cannot.</p>
                     <strong style="color:var(--accent);">The Board:</strong>
-                    <p>10x8 Grid. [cite_start]Files: -A, A, B, C, D, E, F, G, H, H+[cite: 19].</p>
+                    <p>Extended 10x8 grid. Files are labeled -A, A, B, C, D, E, F, G, H, H+.</p>
                 </div>
                 <div>
-                    <strong style="color:var(--accent);">Movement Logic:</strong>
-                    [cite_start]<p>Standard Chess rules apply for all other pieces, including Castling, Promotion, and En Passant[cite: 17, 40].</p>
+                    <strong style="color:var(--accent);">Core Rules:</strong>
+                    <p>Standard rules for Pawns, Knights, Bishops, Rooks, Queens, and Kings apply, including Castling, Promotion, and En Passant.</p>
                     <strong style="color:var(--accent);">Piece Values:</strong>
-                    <p>Archer: 4 | Rook: 5 | Bishop/Knight: 3 | [cite_start]Pawn: 1[cite: 42].</p>
+                    <p>Archer: 4 | Rook: 5 | Bishop/Knight: 3 | Pawn: 1.</p>
                 </div>
             </div>
         </div>
@@ -95,14 +95,14 @@
         const files = ["-A","A","B","C","D","E","F","G","H","H+"];
         const vals = { 'k':1000,'q':9,'r':5,'a':4,'b':3,'n':3,'p':1 };
         
-        let board = [], turn = 'w', sel = null, shadows = [], caps = {w:[], b:[]}, over = false;
+        let board = [], turn = 'w', sel = null, shadows = [], caps = {w:[], b:[]}, over = false, gameLocked = false;
         let moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
 
         function idx(f, r) { return f * 8 + r; }
         function isW(p) { return p && p === p.toUpperCase(); }
 
         function init() {
-            board = new Array(80).fill(null); turn = 'w'; sel = null; shadows = []; caps = {w:[], b:[]}; over = false;
+            board = new Array(80).fill(null); turn = 'w'; sel = null; shadows = []; caps = {w:[], b:[]}; over = false; gameLocked = false;
             moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
             const setup = ['A','R','N','B','Q','K','B','N','R','A'];
             for(let f=0; f<10; f++) { board[idx(f,0)]=setup[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=setup[f].toLowerCase(); }
@@ -162,7 +162,11 @@
                 if(canMove(sq, t, b)) {
                     let o = b[t], p = b[sq]; b[t]=p; b[sq]=null;
                     let k = b.findIndex(x => x === (isW(p)?'K':'k')), ok = true;
-                    if(k!==-1) for(let i=0; i<80; i++) if(b[i] && isW(b[i])!==isW(p) && canMove(i, k, b, false)) ok = false;
+                    if(k!==-1) {
+                        for(let i=0; i<80; i++) {
+                            if(b[i] && isW(b[i])!==isW(p) && canMove(i, k, b, false)) { ok = false; break; }
+                        }
+                    }
                     b[sq]=p; b[t]=o; if(ok) m.push(t);
                 }
             }
@@ -170,24 +174,30 @@
         }
 
         function exec(s, t) {
+            if(over) return;
             let p = board[s], tp = board[t];
             if(tp) isW(tp)?caps.w.push(tp):caps.b.push(tp);
             
-            // Castling Execution
             if(p.toUpperCase()==='K' && Math.abs(Math.floor(t/8)-Math.floor(s/8))===2) {
                 let rS = Math.floor(t/8)===3 ? idx(1,s%8) : idx(8,s%8);
                 let rT = Math.floor(t/8)===3 ? idx(4,s%8) : idx(6,s%8);
                 board[rT]=board[rS]; board[rS]=null;
             }
 
-            // Moved flags
             if(s===idx(5,0)) moved.wK=true; if(s===idx(1,0)) moved.wR1=true; if(s===idx(8,0)) moved.wR2=true;
             if(s===idx(5,7)) moved.bK=true; if(s===idx(1,7)) moved.bR1=true; if(s===idx(8,7)) moved.bR2=true;
 
             board[t]=p; board[s]=null;
             if(p==='P' && t%8===7) board[t]='Q'; if(p==='p' && t%8===0) board[t]='q';
-            turn = turn==='w'?'b':'w'; draw(); check();
-            if(turn==='b' && !over) setTimeout(ai, 600);
+            
+            turn = turn==='w'?'b':'w';
+            draw();
+            if(!checkGameEnd() && turn==='b') {
+                gameLocked = true;
+                setTimeout(ai, 500);
+            } else {
+                gameLocked = false;
+            }
         }
 
         function evalB(b) {
@@ -198,7 +208,10 @@
 
         function minimax(b, d, a, bt, isM) {
             if(d===0) return evalB(b);
-            let ms = []; for(let i=0; i<80; i++) if(b[i] && isW(b[i])===isM) getMoves(i,b).forEach(m=>ms.push({s:i, t:m}));
+            let ms = []; 
+            for(let i=0; i<80; i++) if(b[i] && isW(b[i])===isM) getMoves(i,b).forEach(m=>ms.push({s:i, t:m}));
+            if(ms.length === 0) return isM ? -999 : 999;
+
             if(isM) {
                 let v = -9999; for(let m of ms) {
                     let o = b[m.t]; b[m.t]=b[m.s]; b[m.s]=null; v = Math.max(v, minimax(b, d-1, a, bt, false));
@@ -213,9 +226,11 @@
         }
 
         function ai() {
-            let ms = []; for(let i=0; i<80; i++) if(board[i] && !isW(board[i])) getMoves(i, board).forEach(m=>ms.push({s:i, t:m}));
-            if(ms.length===0) return check();
-            let bM = null, bV = 9999;
+            let ms = []; 
+            for(let i=0; i<80; i++) if(board[i] && !isW(board[i])) getMoves(i, board).forEach(m=>ms.push({s:i, t:m}));
+            if(ms.length===0) { checkGameEnd(); return; }
+            
+            let bM = ms[0], bV = 9999;
             for(let m of ms) {
                 let o = board[m.t]; board[m.t]=board[m.s]; board[m.s]=null;
                 let v = minimax(board, 2, -10000, 10000, true);
@@ -223,22 +238,24 @@
                 if(v < bV) { bV = v; bM = m; }
             }
             exec(bM.s, bM.t);
+            gameLocked = false;
         }
 
-        function check() {
+        function checkGameEnd() {
             let m = false; for(let i=0; i<80; i++) if(board[i] && isW(board[i])===(turn==='w') && getMoves(i, board).length > 0) m = true;
             if(!m) {
                 over = true; let k = board.findIndex(x => x === (turn==='w'?'K':'k')), ic = false;
-                for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && canMove(i, k, board, false)) ic = true;
-                alert(ic ? (turn==='b'?"MATE - WIN!":"MATE - LOST") : "STALEMATE");
+                if(k!==-1) for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && canMove(i, k, board, false)) ic = true;
+                alert(ic ? (turn==='b'?"CHECKMATE - WHITE WINS!":"CHECKMATE - BLACK WINS!") : "STALEMATE - DRAW");
                 init();
+                return true;
             }
+            return false;
         }
 
         function draw() {
             ctx.clearRect(0,0,660,520);
-            ctx.fillStyle = "#2c1e12"; ctx.font = "bold 14px Georgia";
-            // Draw Labels
+            ctx.fillStyle = "#2c1e12"; ctx.font = "bold 13px Georgia";
             for(let f=0; f<10; f++) ctx.fillText(files[f], 30 + f*60 + 20, 510);
             for(let r=0; r<8; r++) ctx.fillText(8-r, 10, 20 + r*60 + 35);
 
@@ -246,7 +263,7 @@
                 for(let f=0; f<10; f++) {
                     ctx.fillStyle = (f+r)%2===0 ? '#f0d9b5' : '#b58863';
                     ctx.fillRect(30 + f*60, (7-r)*60 + 10, 60, 60);
-                    if(shadows.includes(idx(f,r))) { ctx.fillStyle = "rgba(0,0,0,0.1)"; ctx.beginPath(); ctx.arc(30+f*60+30, (7-r)*60+10+30, 8, 0, 7); ctx.fill(); }
+                    if(shadows.includes(idx(f,r))) { ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.beginPath(); ctx.arc(30+f*60+30, (7-r)*60+10+30, 9, 0, 7); ctx.fill(); }
                     let p = board[idx(f,r)];
                     if(p) {
                         ctx.textAlign='center'; ctx.fillStyle = isW(p) ? '#fff' : '#000';
@@ -257,11 +274,11 @@
             }
             document.getElementById('caps-white').textContent = caps.w.map(x => symbols[x]).join('');
             document.getElementById('caps-black').textContent = caps.b.map(x => symbols[x]).join('');
-            document.getElementById('status').textContent = turn==='w'?"Your Turn":"AI Thinking...";
+            document.getElementById('status').textContent = gameLocked ? "AI is thinking..." : (turn==='w'?"Your Turn":"AI Turn");
         }
 
         function input(e) {
-            if(turn==='b' || over) return;
+            if(turn==='b' || over || gameLocked) return;
             const r = canvas.getBoundingClientRect();
             const cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
             const f = Math.floor(((cx-r.left)*(660/r.width)-30)/60), rIdx = 7-Math.floor(((cy-r.top)*(520/r.height)-10)/60);
