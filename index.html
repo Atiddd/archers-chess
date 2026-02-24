@@ -1,13 +1,9 @@
-This version fixes the Archer visibility by drawing a team-colored base (White or Black) under the Archer piece, ensuring they match the rest of the set while remaining distinct. I have also restored the detailed v2.1 Rules Section layout you liked and kept the Minimax Level 3 AI for a high-level challenge.
-
-Archers Chess v2.2 (The "White & Black" Update)
-HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v2.2 - Master Edition</title>
+    <title>Archers Chess v2.3</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
@@ -21,7 +17,6 @@ HTML
 
         .game-layout { display: grid; grid-template-columns: 260px 620px 260px; gap: 20px; max-width: 1200px; width: 100%; }
 
-        /* Side Panels */
         .side-panel { background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); height: fit-content; }
         .side-panel h3 { margin: 0 0 10px 0; font-size: 1.1em; border-bottom: 1px solid var(--primary); text-transform: uppercase; }
         
@@ -29,18 +24,17 @@ HTML
         .leaderboard-table { width: 100%; font-size: 0.85em; border-collapse: collapse; }
         .leaderboard-table tr:nth-child(even) { background: #f9f5eb; }
 
-        /* Board Area */
         #board-center { display: flex; flex-direction: column; align-items: center; }
         #status { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; }
         #board-wrapper { position: relative; touch-action: none; width: 100%; }
         canvas { width: 100%; height: auto; border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; cursor: pointer; }
 
-        /* Rules Section (Restored Detailed Layout) */
+        /* Restored Detailed Rules Grid */
         .rules-overlay { grid-column: 1 / span 3; background: white; padding: 25px; border-radius: 8px; border: 1px solid #ccc; margin-top: 30px; line-height: 1.6; }
         .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
         .rules-overlay h2 { text-align: center; margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
         
-        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
         button:hover { background: var(--accent); }
 
         @media (max-width: 900px) {
@@ -66,9 +60,6 @@ HTML
             </div>
             <h3>🏆 Top 10 Hall</h3>
             <table class="leaderboard-table" id="hall-of-fame"><tbody></tbody></table>
-            <div style="margin-top:15px; text-align:center;">
-                <a href="#" style="color:var(--accent); font-size:0.8em; font-weight:bold; text-decoration:none;">Global Leaderboards →</a>
-            </div>
         </div>
 
         <div id="board-center">
@@ -84,8 +75,8 @@ HTML
             <hr style="border:0.5px solid #ddd; margin:10px 0;">
             <div id="caps-white" style="font-size:24px; min-height:45px; display:flex; flex-wrap:wrap;"></div>
             
-            <h3 style="margin-top:20px;">AI Strategy</h3>
-            <p style="font-size:0.85em; color:#555;">Minimax Engine (Depth 3).<br>Targeting tactical Archer positioning.</p>
+            <h3 style="margin-top:20px;">AI Status</h3>
+            <p style="font-size:0.85em; color:#555;">Minimax Level 3 Depth.<br>Eval: Piece Safety + Positional Archer Pressure.</p>
         </div>
 
         <div class="rules-overlay">
@@ -97,7 +88,7 @@ HTML
                     Captures and checks ONLY occur on the final square (F). Straight moves are blocked by pieces; diagonal moves can jump.</p>
                     
                     <strong style="color:var(--accent);">The Board:</strong>
-                    <p>Played on a 10x8 grid. Files: -A, A, B, C, D, E, F, G, H, H+.</p>
+                    <p>Played on a 10x8 grid. Files: -A, A, B, C, D, E, F, G, H, H+. Ranks 1-8.</p>
                 </div>
                 <div>
                     <strong style="color:var(--accent);">Scoring & Victory:</strong>
@@ -113,15 +104,15 @@ HTML
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('archers_v22_db')) || [];
-        let user = localStorage.getItem('archers_v22_user') || "Guest";
+        let db = JSON.parse(localStorage.getItem('archers_v23_db')) || [];
+        let user = localStorage.getItem('archers_v23_user') || "Guest";
 
-        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v22_user', user); refreshUI(); } }
+        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v23_user', user); refreshUI(); } }
         function saveScore(res) {
             let p = db.find(x => x.name === user);
             if(!p) { p = {name: user, pts: 0}; db.push(p); }
             if(res === 'w') p.pts += 3; if(res === 'd') p.pts += 1;
-            localStorage.setItem('archers_v22_db', JSON.stringify(db));
+            localStorage.setItem('archers_v23_db', JSON.stringify(db));
             refreshUI();
         }
         function refreshUI() {
@@ -133,7 +124,13 @@ HTML
         }
 
         const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
-        const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹','k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🏹' };
+        
+        // Using Variation Selector-15 (\uFE0E) to force monochrome rendering
+        const archerSymbol = "\u{1F3F9}\u{FE0E}"; 
+        const symbols = { 
+            'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A': archerSymbol,
+            'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a': archerSymbol 
+        };
         const vals = { 'k':1000,'q':9,'r':5,'a':4,'b':3,'n':3,'p':1 };
         
         let board = [], turn = 'w', selected = null, shadows = [], caps = {w:[], b:[]}, over = false;
@@ -277,15 +274,14 @@ HTML
                     let p = board[idx(f,r)];
                     if(p) {
                         ctx.textAlign='center';
-                        // RENDER ARCHERS WITH WHITE/BLACK BACKGROUNDS
+                        ctx.fillStyle = isW(p) ? '#fff' : '#000';
+                        
+                        // Reshading Logic: Archers use the forced monochrome glyph
                         if(p.toUpperCase() === 'A') {
-                            ctx.fillStyle = isW(p) ? '#fff' : '#000';
-                            ctx.beginPath(); ctx.arc(f*60+30, (7-r)*60+30, 22, 0, 7); ctx.fill();
-                            ctx.font='32px serif';
-                            ctx.fillText(symbols[p], f*60+30, (7-r)*60+42);
+                            ctx.font = '36px serif';
+                            ctx.fillText(symbols[p], f*60+30, (7-r)*60+44);
                         } else {
-                            ctx.fillStyle = isW(p) ? '#fff' : '#000';
-                            ctx.font='42px serif';
+                            ctx.font = '42px serif';
                             ctx.fillText(symbols[p], f*60+30, (7-r)*60+44);
                         }
                     }
