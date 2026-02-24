@@ -3,129 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v6.7</title>
+    <title>Archers Chess v6.8</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
             --tile-light: #f0d9b5; --tile-dark: #b58863; --panel-bg: #fffcf5;
         }
-        /* Mobile-first scrolling fix */
-        html, body { overflow-x: hidden; width: 100%; -webkit-overflow-scrolling: touch; background: var(--bg); }
-        body { font-family: 'Georgia', serif; color: #2c1e12; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        html, body { overflow-x: hidden; width: 100%; -webkit-overflow-scrolling: touch; }
+        body { font-family: 'Georgia', serif; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
-        header { text-align: center; margin-bottom: 10px; }
-        h1 { color: var(--primary); margin: 0; font-size: 1.8em; text-transform: uppercase; border-bottom: 2px solid var(--primary); display: inline-block; }
+        header { text-align: center; margin-bottom: 15px; }
+        h1 { color: var(--primary); margin: 0; font-size: 2.2em; text-transform: uppercase; letter-spacing: 3px; border-bottom: 2px solid var(--primary); display: inline-block; }
+        .author { font-style: italic; color: #795548; margin-top: 5px; }
+
+        .game-layout { display: grid; grid-template-columns: 260px 660px 260px; gap: 20px; max-width: 1250px; width: 100%; }
+
+        .side-panel { background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); height: fit-content; display: flex; flex-direction: column; }
+        .side-panel h3 { margin: 0 0 10px 0; font-size: 1.1em; border-bottom: 1px solid var(--primary); text-transform: uppercase; }
         
-        .game-layout { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 1200px; }
+        .user-box { background: #efe6d5; padding: 12px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #dcd0b9; }
+        .leaderboard-table { width: 100%; font-size: 0.85em; border-collapse: collapse; }
+        .leaderboard-table tr:nth-child(even) { background: #f9f5eb; }
 
-        /* Desktop Layout Override */
-        @media (min-width: 1000px) {
-            .game-layout { display: grid; grid-template-columns: 260px 660px 260px; align-items: start; padding: 20px; }
-        }
-
-        .side-panel { background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 12px; box-shadow: 2px 2px 8px rgba(0,0,0,0.1); width: 90%; max-width: 300px; }
-        #status { font-size: 1.1rem; font-weight: bold; margin-bottom: 8px; color: var(--primary); text-align: center; min-height: 1.5rem; }
+        #board-center { display: flex; flex-direction: column; align-items: center; }
+        #status { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; text-align: center; }
         
-        /* Canvas Optimization: Scale responsive but maintain internal resolution */
-        #board-center { display: flex; flex-direction: column; align-items: center; width: 100%; }
-        canvas { border: 6px solid var(--primary); border-radius: 4px; background: #deb887; touch-action: none; cursor: grab; width: 95vw; max-width: 660px; height: auto; display: block; }
+        canvas { border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; touch-action: none; cursor: grab; max-width: 100%; height: auto; }
 
-        .move-history { background: white; border: 1px solid #ccc; border-radius: 4px; padding: 5px; height: 120px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85em; margin-bottom: 10px; }
-        .move-row { display: flex; padding: 1px 0; border-bottom: 1px solid #f9f9f9; }
-        .move-num { width: 25px; color: #888; text-align: right; padding-right: 8px; }
+        .move-history { background: white; border: 1px solid #ccc; border-radius: 4px; padding: 5px; height: 180px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.9em; margin-bottom: 15px; }
+        .move-row { display: flex; padding: 2px 0; border-bottom: 1px solid #f0f0f0; }
+        .move-num { width: 30px; color: #888; text-align: right; padding-right: 10px; }
         .move-w, .move-b { width: 45%; font-weight: bold; }
         
-        .rules-overlay { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ccc; margin-top: 20px; font-size: 0.9em; width: 90%; }
+        .rules-overlay { grid-column: 1 / span 3; background: white; padding: 25px; border-radius: 8px; border: 1px solid #ccc; margin-top: 30px; line-height: 1.6; }
+        .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .rules-overlay h2 { text-align: center; margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
         
-        select, button { width: 100%; padding: 8px; font-size: 0.9rem; font-family: inherit; margin-top: 5px; cursor: pointer; border-radius: 4px; border: 1px solid var(--primary); }
-        button { background: var(--primary); color: white; font-weight: bold; border: none; }
+        select, button { width: 100%; padding: 8px; font-size: 0.95rem; font-family: inherit; margin-top: 5px; cursor: pointer; border-radius: 4px; border: 1px solid var(--primary); }
+        button { background: var(--primary); color: white; font-weight: bold; border: none; padding: 10px; }
+
+        @media (max-width: 1000px) {
+            .game-layout { display: flex; flex-direction: column; }
+            .side-panel { width: calc(100% - 30px); order: 2; margin-bottom: 10px; }
+            #board-center { order: 1; margin-bottom: 10px; }
+            .rules-grid { grid-template-columns: 1fr; gap: 20px; }
+            .rules-overlay { order: 3; }
+        }
 
         .ai-thinking { color: var(--accent) !important; animation: pulse 1s infinite; }
-        .check-alert { color: #ff0000 !important; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .check-alert { color: #ff0000 !important; animation: shake 0.5s; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
     </style>
 </head>
 <body>
 
-    <header><h1>Archers Chess</h1></header>
+    <header>
+        <h1>Archers Chess</h1>
+        <div class="author">Official Rules v1.0 • Created by John Patrick Read</div>
+    </header>
 
     <div class="game-layout">
         <div class="side-panel">
-            <div id="u-name" style="font-weight:bold;">Guest</div>
-            <div id="u-pts" style="font-size:0.85em; color:#795548; margin-bottom:8px;">0 Points</div>
-            <select id="ai-diff">
-                <option value="1">Novice (1pt)</option>
-                <option value="2" selected>Warrior (3pts)</option>
-                <option value="3">Master (5pts)</option>
+            <div class="user-box">
+                <div id="u-name" style="font-weight:bold;">Guest</div>
+                <div id="u-pts" style="font-size:0.9em; color:#795548; margin-bottom:8px;">0 Points</div>
+                <button onclick="doLogin()">New Player / Login</button>
+            </div>
+            <h3>Opponent Level</h3>
+            <select id="ai-diff" style="margin-bottom: 10px;">
+                <option value="1">Level 1 (Novice - 1pt)</option>
+                <option value="2" selected>Level 2 (Warrior - 3pts)</option>
+                <option value="3">Level 3 (Master - 5pts)</option>
             </select>
-            <button onclick="initGame()" style="margin-top:10px;">Restart</button>
-            <button id="btn-concede" onclick="concede()" style="background:var(--accent); margin-top:5px;">Concede</button>
+            <div style="display: flex; gap: 5px;">
+                <button onclick="initGame()">Restart</button>
+                <button id="btn-concede" onclick="concede()" style="background: var(--accent);">Concede</button>
+            </div>
         </div>
 
         <div id="board-center">
-            <div id="status">Your Turn</div>
+            <div id="status">Your Turn (White)</div>
             <canvas id="board" width="660" height="520"></canvas>
         </div>
 
         <div class="side-panel">
-            <h3>History</h3>
+            <h3>Move History</h3>
             <div class="move-history" id="move-history"></div>
-            <div id="caps-black" style="font-size:20px; min-height:25px;"></div>
-            <hr style="margin:5px 0;">
-            <div id="caps-white" style="font-size:20px; min-height:25px;"></div>
+            <h3>Captured Pieces</h3>
+            <div id="caps-black" style="font-size:24px; min-height:35px; display:flex; flex-wrap:wrap;"></div>
+            <hr style="border:0.5px solid #ddd; margin:10px 0;">
+            <div id="caps-white" style="font-size:24px; min-height:35px; display:flex; flex-wrap:wrap;"></div>
+            <h3 style="margin-top:10px;">Top 10 Hall</h3>
+            <table class="leaderboard-table" id="hall-of-fame"><tbody></tbody></table>
+        </div>
+
+        <div class="rules-overlay">
+            <h2>Official Rules of Play</h2>
+            <div class="rules-grid">
+                <div>
+                    <strong style="color:var(--accent);">The Archer Piece (A):</strong>
+                    <p>A tactical ranged piece moving in two phases: 3 squares outward (O) and 1 diagonal return step (F). 
+                    Captures and checks ONLY occur on the final square (F). Straight moves are blocked by pieces; diagonal moves can jump.</p>
+                    
+                    <strong style="color:var(--accent);">The Board:</strong>
+                    <p>Played on a 10x8 grid. Files: -A, A, B, C, D, E, F, G, H, H+.</p>
+                </div>
+                <div>
+                    <strong style="color:var(--accent);">Scoring & Victory:</strong>
+                    <ul>
+                        <li><strong>Novice Win:</strong> 1 Point | <strong>Draw:</strong> 0 Points.</li>
+                        <li><strong>Warrior Win:</strong> 3 Points | <strong>Draw:</strong> 1 Point.</li>
+                        <li><strong>Master Win:</strong> 5 Points | <strong>Draw:</strong> 2 Points.</li>
+                    </ul>
+                    <strong style="color:var(--accent);">Piece Values:</strong>
+                    <p>Archer: 4 | Rook: 5 | Bishop/Knight: 3 | Pawn: 1.</p>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // --- DATA & STATE ---
-        let db = []; let user = "Guest";
-        try { db = JSON.parse(localStorage.getItem('archers_v67_db')) || []; user = localStorage.getItem('archers_v67_user') || "Guest"; } catch(e) {}
-        
-        function saveScore(res) {
-            let p = db.find(x => x.name === user); if(!p) { p = {name: user, pts: 0}; db.push(p); }
-            let d = parseInt(document.getElementById('ai-diff').value);
-            if(res === 'w') p.pts += (d === 1 ? 1 : d === 2 ? 3 : 5);
-            else if(res === 'd') p.pts += (d === 2 ? 1 : d === 3 ? 2 : 0);
-            localStorage.setItem('archers_v67_db', JSON.stringify(db));
-            document.getElementById('u-pts').textContent = p.pts + " Points";
+        // --- 1. MEMORY-SAFE AUDIO ENGINE ---
+        function playSound(t) {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            let n = audioCtx.currentTime;
+            if(t==='move'){ o.frequency.setValueAtTime(300,n); g.gain.exponentialRampToValueAtTime(0.01,n+0.1); o.start(); o.stop(n+0.1); }
+            else if(t==='capture'){ o.type='square'; o.frequency.setValueAtTime(200,n); g.gain.exponentialRampToValueAtTime(0.01,n+0.2); o.start(); o.stop(n+0.2); }
+            else if(t==='check'){ o.type='triangle'; o.frequency.setValueAtTime(500,n); g.gain.exponentialRampToValueAtTime(0.01,n+0.3); o.start(); o.stop(n+0.3); }
+            setTimeout(() => audioCtx.close(), 500); // Purge audio memory
         }
 
-        // --- AUDIO (MEMORY SAFE) ---
-        let audioCtx = null;
-        function playSound(t) {
-            try {
-                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if(audioCtx.state === 'suspended') audioCtx.resume();
-                const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-                o.connect(g); g.connect(audioCtx.destination);
-                let now = audioCtx.currentTime;
-                if(t==='move') { o.frequency.setValueAtTime(300, now); g.gain.exponentialRampToValueAtTime(0.01, now+0.1); o.start(); o.stop(now+0.1); }
-                else if(t==='capture') { o.type='square'; o.frequency.setValueAtTime(200, now); g.gain.exponentialRampToValueAtTime(0.01, now+0.2); o.start(); o.stop(now+0.2); }
-                else if(t==='check') { o.type='triangle'; o.frequency.setValueAtTime(500, now); g.gain.exponentialRampToValueAtTime(0.01, now+0.3); o.start(); o.stop(now+0.3); }
-            } catch(e) {}
+        // --- 2. GAME DATA ---
+        let db = []; let user = "Guest";
+        try { db = JSON.parse(localStorage.getItem('archers_v68_db')) || []; user = localStorage.getItem('archers_v68_user') || "Guest"; } catch(e) {}
+
+        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v68_user', user); refreshUI(); } }
+        function saveScore(res) {
+            let p = db.find(x => x.name === user); if(!p) { p = {name: user, pts: 0}; db.push(p); }
+            let diff = parseInt(document.getElementById('ai-diff').value);
+            if(res === 'w') p.pts += (diff === 1 ? 1 : diff === 2 ? 3 : 5);
+            else if(res === 'd') p.pts += (diff === 2 ? 1 : diff === 3 ? 2 : 0);
+            localStorage.setItem('archers_v68_db', JSON.stringify(db)); refreshUI();
+        }
+
+        function refreshUI() {
+            document.getElementById('u-name').textContent = user;
+            let p = db.find(x => x.name === user) || {pts:0};
+            document.getElementById('u-pts').textContent = p.pts + " Points";
+            let sorted = [...db].sort((a,b) => b.pts - a.pts).slice(0,10);
+            document.getElementById('hall-of-fame').innerHTML = sorted.map((s,i) => `<tr><td>${i+1}. ${s.name}</td><td style="text-align:right"><b>${s.pts}</b></td></tr>`).join('');
         }
 
         const canvas = document.getElementById('board'), ctx = canvas.getContext('2d', { alpha: false });
         const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':"🏹", 'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':"🏹" };
         const files = ["-A","A","B","C","D","E","F","G","H","H+"];
-        let board = Array(80).fill(null), turn = 'w', gameActive = false, validMoves = [], caps = {w:[], b:[]}, moved = { wK:false, bK:false };
+        let board = Array(80).fill(null), turn = 'w', sel = null, gameActive = false, validMoves = [], caps = {w:[], b:[]}, moved = { wK:false, bK:false };
         let moveHistory = [], dragging = false, dragOrigin = null, pointerX = 0, pointerY = 0;
 
         function idx(f, r) { return f * 8 + r; }
         function isW(p) { return p === p.toUpperCase(); }
 
         function initGame() {
-            board = Array(80).fill(null); turn = 'w'; gameActive = true;
-            validMoves = []; caps = {w:[], b:[]}; moveHistory = []; moved = { wK:false, bK:false };
+            board = Array(80).fill(null); turn = 'w'; sel = null; validMoves = []; caps = {w:[], b:[]}; gameActive = true;
+            moved = { wK:false, bK:false }; moveHistory = []; document.getElementById('move-history').innerHTML = "";
             const setup = ['A','R','N','B','Q','K','B','N','R','A'];
             for(let f=0; f<10; f++) { board[idx(f,0)]=setup[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=setup[f].toLowerCase(); }
-            document.getElementById('move-history').innerHTML = "";
-            updateStatus("Your Turn"); draw();
+            refreshUI(); updateStatus("Your Turn (White)"); draw();
         }
 
-        function concede() { if(gameActive) { gameActive = false; updateStatus("BLACK WINS!"); saveScore('l'); draw(); } }
+        function concede() { if(gameActive) { gameActive = false; updateStatus("Conceded - BLACK WINS!"); saveScore('l'); draw(); } }
 
-        // --- ARCHER FIXED LOGIC ---
+        // --- 3. ARCHER FIX & ENGINE ---
         function getPseudoMoves(b, i, attacksOnly = false) {
             let p = b[i]; if (!p) return [];
             let isWhite = isW(p), type = p.toUpperCase(), f = Math.floor(i/8), r = i%8, mvs = [];
@@ -146,7 +197,8 @@
                     let block = false;
                     for(let s=1; s<=3; s++) {
                         let cf = f+ox*s, cr = r+oy*s;
-                        if(cf<0||cf>9||cr<0||cr>7 || ((ox===0||oy===0) && b[idx(cf,cr)])) { block=true; break; }
+                        if(cf<0||cf>9||cr<0||cr>7) { block=true; break; }
+                        if((ox===0||oy===0) && b[idx(cf,cr)]) { block=true; break; }
                     }
                     if(block) continue;
                     let f3=f+ox*3, r3=r+oy*3;
@@ -194,7 +246,7 @@
             if(isC){ let r=s%8, ef=Math.floor(t/8); if(ef===3){board[idx(4,r)]=board[idx(1,r)];board[idx(1,r)]=null;} else {board[idx(6,r)]=board[idx(8,r)];board[idx(8,r)]=null;} }
             if(p==='K') moved.wK=true; if(p==='k') moved.bK=true;
             if(p==='P'&&t%8===7) board[t]='Q'; if(p==='p'&&t%8===0) board[t]='q';
-            turn=isWT?'b':'w'; dragging=false;
+            turn=isWT?'b':'w'; sel=null; validMoves=[]; dragging=false;
             let k=board.indexOf(turn==='w'?'K':'k'); let ic=getAttackMap(board,!isW(board[k]))[k];
             let note=(p.toUpperCase()==='P'?'':p.toUpperCase())+(tp?'x':'')+files[Math.floor(t/8)]+(t%8+1);
             if(isWT) moveHistory.push({w:note+(ic?'+':''), b:''}); else moveHistory[moveHistory.length-1].b=note+(ic?'+':'');
@@ -210,7 +262,7 @@
         }
 
         function finalizeGame() { gameActive=false; let k=board.indexOf(turn==='w'?'K':'k'); let ic=getAttackMap(board,turn==='b')[k]; updateStatus(ic?(turn==='w'?"BLACK WINS!":"WHITE WINS!"):"DRAW!"); saveScore(ic?(turn==='b'?'w':'l'):'d'); draw(); }
-        function updateStatus(msg) { const s=document.getElementById('status'); s.textContent=msg; s.className=msg.includes("AI")?"ai-thinking":""; }
+        function updateStatus(msg) { const s=document.getElementById('status'); s.textContent=msg; s.className=msg.includes("AI")?"ai-thinking":(msg.includes("!")?"check-alert":""); }
 
         function draw() {
             ctx.fillStyle = '#b58863'; ctx.fillRect(0,0,660,520);
@@ -218,7 +270,7 @@
                 for(let r=0;r<8;r++){
                     let sq=idx(f,r); ctx.fillStyle=(f+r)%2===0?'#f0d9b5':'#b58863'; ctx.fillRect(30+f*60,(7-r)*60+10,60,60);
                     if(validMoves.some(m=>m.t===sq)){ ctx.fillStyle="rgba(0,0,0,0.1)"; ctx.beginPath(); ctx.arc(30+f*60+30,(7-r)*60+40,10,0,7); ctx.fill(); }
-                    let p=board[sq]; if(p&&(!dragging || sq!==dragOrigin)){
+                    let p=board[sq]; if(p&&(!dragging||sq!==dragOrigin)){
                         ctx.textAlign='center'; ctx.fillStyle=isW(p)?'#fff':'#000'; ctx.font=p.toUpperCase()==='A'?'36px serif':'42px serif'; ctx.fillText(symbols[p],30+f*60+30,(7-r)*60+54);
                     }
                 }
@@ -227,34 +279,19 @@
             document.getElementById('caps-white').textContent=caps.w.map(x=>symbols[x]).join(''); document.getElementById('caps-black').textContent=caps.b.map(x=>symbols[x]).join('');
         }
 
-        function getCoords(e) { 
-            const r = canvas.getBoundingClientRect(); 
-            const x = (e.clientX || e.touches[0].clientX) - r.left;
-            const y = (e.clientY || e.touches[0].clientY) - r.top;
-            return { x: x * (660/r.width), y: y * (520/r.height) };
-        }
+        function getCoords(e) { const r=canvas.getBoundingClientRect(); return { x:( (e.clientX || e.touches[0].clientX) - r.left) * (660/r.width), y:( (e.clientY || e.touches[0].clientY) - r.top) * (520/r.height) }; }
 
-        function handleDown(e) {
-            if(!gameActive||turn==='b') return;
-            const c = getCoords(e); pointerX = c.x; pointerY = c.y;
-            const f = Math.floor((c.x-30)/60), r = 7-Math.floor((c.y-10)/60); const sq = idx(f,r);
-            if(board[sq] && isW(board[sq])) { dragOrigin=sq; dragging=true; validMoves=getAllLegalMoves(board,true).filter(m=>m.s===sq); }
+        canvas.addEventListener('pointerdown',(e)=>{
+            if(!gameActive||turn==='b')return; const c=getCoords(e); pointerX=c.x; pointerY=c.y;
+            const f=Math.floor((c.x-30)/60), r=7-Math.floor((c.y-10)/60); const sq=idx(f,r);
+            if(sel!==null&&validMoves.some(m=>m.t===sq)){ processMove(sel,sq,validMoves.find(m=>m.t===sq).isCastle); return; }
+            if(board[sq]&&isW(board[sq])){ sel=sq; dragging=true; dragOrigin=sq; validMoves=getAllLegalMoves(board,true).filter(m=>m.s===sq); canvas.setPointerCapture(e.pointerId); }
             draw();
-        }
-        function handleMove(e) { if(dragging){ const c=getCoords(e); pointerX=c.x; pointerY=c.y; draw(); } }
-        function handleUp(e) {
-            if(!dragging) return; dragging=false; 
-            const f=Math.floor((pointerX-30)/60), r=7-Math.floor((pointerY-10)/60), target=idx(f,r);
-            let m=validMoves.find(mv=>mv.t===target); if(m) processMove(dragOrigin,target,m.isCastle); else {validMoves=[]; draw();}
-        }
-
-        canvas.addEventListener('mousedown', handleDown); window.addEventListener('mousemove', handleMove); window.addEventListener('mouseup', handleUp);
-        canvas.addEventListener('touchstart', (e)=>{e.preventDefault(); handleDown(e);});
-        canvas.addEventListener('touchmove', (e)=>{e.preventDefault(); handleMove(e);});
-        canvas.addEventListener('touchend', (e)=>{e.preventDefault(); handleUp(e);});
+        });
+        canvas.addEventListener('pointermove',(e)=>{ if(dragging){const c=getCoords(e); pointerX=c.x; pointerY=c.y; draw();} });
+        canvas.addEventListener('pointerup',(e)=>{ if(!dragging)return; dragging=false; canvas.releasePointerCapture(e.pointerId); const c=getCoords(e); const f=Math.floor((c.x-30)/60), r=7-Math.floor((c.y-10)/60), target=idx(f,r); if(target!==dragOrigin){ let m=validMoves.find(mv=>mv.t===target); if(m)processMove(dragOrigin,target,m.isCastle); else {sel=null;validMoves=[];draw();} } else draw(); });
 
         initGame();
     </script>
 </body>
 </html>
-
