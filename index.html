@@ -3,71 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v1.9</title>
+    <title>Archers Chess v2.0</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
             --tile-light: #f0d9b5; --tile-dark: #b58863; --panel-bg: #fffcf5;
+            /* New Archer Colors */
+            --white-archer: #d4af37; /* Gold */
+            --black-archer: #8b0000; /* Dark Red */
         }
         body { 
             font-family: 'Georgia', serif; background: var(--bg); color: #2c1e12; 
             margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center;
         }
         
-        /* HEADER */
         header { text-align: center; width: 100%; margin-bottom: 15px; }
-        h1 { color: var(--primary); margin: 0; font-size: 2rem; text-transform: uppercase; letter-spacing: 2px; border-bottom: 2px solid var(--primary); display: inline-block; }
-        .author { font-style: italic; color: #795548; font-size: 0.9rem; margin-top: 5px; }
+        h1 { color: var(--primary); margin: 0; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 2px; border-bottom: 2px solid var(--primary); display: inline-block; }
+        .author { font-style: italic; color: #795548; font-size: 0.8rem; margin-top: 5px; }
 
-        /* MAIN LAYOUT (DESKTOP) */
         .game-layout { 
-            display: grid; 
-            grid-template-columns: 260px 620px 260px; 
-            gap: 20px; 
-            max-width: 1200px; 
-            width: 100%;
+            display: grid; grid-template-columns: 240px 1fr 240px; 
+            gap: 20px; max-width: 1200px; width: 100%;
         }
 
-        /* SIDE PANELS */
         .side-panel { 
             background: var(--panel-bg); border: 2px solid var(--primary); 
             border-radius: 8px; padding: 15px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1);
-            height: fit-content;
         }
-        .side-panel h3 { margin: 0 0 10px 0; font-size: 1.1em; border-bottom: 1px solid var(--primary); text-transform: uppercase; }
         
-        .user-box { background: #efe6d5; padding: 12px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #dcd0b9; }
-        .leaderboard-table { width: 100%; font-size: 0.85em; border-collapse: collapse; }
-        .leaderboard-table tr:nth-child(even) { background: #f9f5eb; }
-
-        /* BOARD AREA */
         #board-center { display: flex; flex-direction: column; align-items: center; }
-        #status { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; }
-        #board-wrapper { position: relative; touch-action: none; width: 100%; }
+        #status { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; }
         canvas { 
-            width: 100%; height: auto; border: 10px solid var(--primary); 
+            width: 100%; max-width: 600px; height: auto; border: 8px solid var(--primary); 
             border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887;
         }
 
-        /* RULES SECTION (MANDATORY) */
         .rules-container { 
-            grid-column: 1 / span 3; 
-            background: white; padding: 25px; border-radius: 8px; 
-            border: 1px solid #ccc; margin-top: 25px; line-height: 1.6; 
+            grid-column: 1 / span 3; background: white; padding: 20px; 
+            border-radius: 8px; border: 1px solid #ccc; margin-top: 20px; font-size: 0.9rem;
         }
-        .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
-        .rules-container h2 { text-align: center; margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--primary); }
 
-        /* BUTTONS */
-        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button:hover { background: var(--accent); }
+        button { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
-        /* MOBILE ADJUSTMENTS */
         @media (max-width: 900px) {
-            .game-layout { display: flex; flex-direction: column; align-items: center; }
-            .rules-grid { grid-template-columns: 1fr; gap: 20px; }
-            h1 { font-size: 1.5rem; }
-            .side-panel { width: 90%; margin-bottom: 10px; }
+            .game-layout { display: flex; flex-direction: column; }
+            .side-panel { width: 95%; margin-bottom: 10px; }
         }
     </style>
 </head>
@@ -75,139 +55,109 @@
 
     <header>
         <h1>Archers Chess</h1>
-        <div class="author">Official Rules v1.0 • Created by John Patrick Read</div>
+        <div class="author">Official Rules v1.0 [cite: 12] • Created by John Patrick Read [cite: 13]</div>
     </header>
 
     <div class="game-layout">
         <div class="side-panel">
-            <div class="user-box">
-                <div id="active-user-name" style="font-weight:bold;">Guest</div>
-                <div id="active-user-pts" style="font-size:0.9em; color:#795548; margin-bottom:8px;">0 Points</div>
-                <button style="width:100%; font-size:12px;" onclick="userLogin()">New Player / Login</button>
+            <div style="background:#efe6d5; padding:10px; border-radius:4px; margin-bottom:15px; border:1px solid #dcd0b9;">
+                <div id="u-name" style="font-weight:bold;">Guest</div>
+                <div id="u-pts" style="font-size:0.8rem; color:#795548; margin-bottom:5px;">0 Points</div>
+                <button style="width:100%; font-size:11px;" onclick="doLogin()">Player Login</button>
             </div>
-            <h3>🏆 Top 10 Hall</h3>
-            <table class="leaderboard-table" id="hall-of-fame"><tbody></tbody></table>
-            <div style="margin-top:10px; font-size:0.75rem; text-align:center;">
-                <a href="#" style="color:var(--accent); font-weight:bold;">View Global Leaderboards</a>
-            </div>
+            <h3 style="font-size:1rem; border-bottom:1px solid var(--primary);">🏆 Hall of Fame</h3>
+            <div id="leaderboard" style="font-size:0.8rem;"></div>
         </div>
 
         <div id="board-center">
             <div id="status">White to Move</div>
-            <div id="board-wrapper">
-                <canvas id="board" width="600" height="480"></canvas>
-            </div>
+            <canvas id="board" width="600" height="480"></canvas>
         </div>
 
         <div class="side-panel">
-            <h3>Captured</h3>
-            <div id="black-captures" style="font-size:24px; min-height:40px; display:flex; flex-wrap:wrap;"></div>
-            <hr style="border:0.5px solid #ddd; margin:10px 0;">
-            <div id="white-captures" style="font-size:24px; min-height:40px; display:flex; flex-wrap:wrap;"></div>
-            
-            <h3 style="margin-top:20px;">AI Status</h3>
-            <p id="ai-thought" style="font-size:0.8rem; color:#555;">Level 3 Minimax Active.</p>
+            <h3 style="font-size:1rem; border-bottom:1px solid var(--primary);">Captured</h3>
+            <div id="caps-b" style="font-size:22px; min-height:40px;"></div>
+            <hr style="border:0.5px solid #ddd;">
+            <div id="caps-w" style="font-size:22px; min-height:40px;"></div>
+            <p style="font-size:0.75rem; color:#666; margin-top:20px;">
+                <strong>Archer Value:</strong> 4 Pts [cite: 42]<br>
+                <strong>AI Level:</strong> Minimax Depth 2
+            </p>
         </div>
 
         <div class="rules-container">
-            <h2>Official Rules of Play</h2>
-            <div class="rules-grid">
-                <div>
-                    <strong style="color:var(--accent);">1. The Archer Piece (A):</strong>
-                    <p>Moves exactly 3 squares in a straight or diagonal direction (Outward Phase), followed by a mandatory 1-square diagonal return step (Final Phase)[cite: 24, 27, 31]. 
-                    Captures and Checks only occur on the final square[cite: 33, 35]. Straight moves cannot jump pieces; diagonals can[cite: 28, 29].</p>
-                    
-                    <strong style="color:var(--accent);">2. Board Layout:</strong>
-                    <p>Played on a 10x8 board with files -A through H+. Standard chess rules (Castling, En Passant) apply unchanged[cite: 40].</p>
-                </div>
-                <div>
-                    <strong style="color:var(--accent);">3. Scoring System:</strong>
-                    <ul>
-                        <li><strong>Win:</strong> 3 Points | <strong>Draw:</strong> 1 Point.</li>
-                        <li><strong>Piece Value:</strong> Archer is valued at 4 points.</li>
-                    </ul>
-                    <strong style="color:var(--accent);">4. Authorship:</strong>
-                    <p>Created by John Patrick Read, January 2026[cite: 2, 3]. Canonical Rules v1.0[cite: 50].</p>
-                </div>
-            </div>
+            <strong>The Archer (A) Movement[cite: 24, 51]:</strong>
+            <p>Moves exactly 3 squares (Outward) then 1 square diagonal return (Final)[cite: 27, 31]. 
+            Only captures/checks on the final square[cite: 33, 35]. Straight moves are blocked [cite: 28, 103]; diagonals jump[cite: 29, 112].</p>
         </div>
     </div>
 
     <script>
-        // --- Persistence ---
-        let players = JSON.parse(localStorage.getItem('archers_v19_db')) || [];
-        let activeUser = localStorage.getItem('archers_v19_user') || "Guest";
+        let players = JSON.parse(localStorage.getItem('arch_v2')) || [];
+        let user = localStorage.getItem('arch_user') || "Guest";
 
-        function userLogin() {
-            let n = prompt("Enter Username:", activeUser);
-            if(n) { activeUser = n.trim(); localStorage.setItem('archers_v19_user', activeUser); renderStats(); }
+        function doLogin() { let n = prompt("Name:", user); if(n){ user = n.trim(); localStorage.setItem('arch_user', user); updateUI(); } }
+
+        function record(res) {
+            let p = players.find(x => x.name === user);
+            if(!p) { p = {name: user, pts: 0}; players.push(p); }
+            if(res==='w') p.pts+=3; if(res==='d') p.pts+=1;
+            localStorage.setItem('arch_v2', JSON.stringify(players));
+            updateUI();
         }
 
-        function updateScore(res) {
-            let p = players.find(x => x.name === activeUser);
-            if(!p) { p = {name: activeUser, pts: 0}; players.push(p); }
-            if(res === 'w') p.pts += 3; if(res === 'd') p.pts += 1;
-            localStorage.setItem('archers_v19_db', JSON.stringify(players));
-            renderStats();
+        function updateUI() {
+            document.getElementById('u-name').textContent = user;
+            let p = players.find(x => x.name === user) || {pts:0};
+            document.getElementById('u-pts').textContent = p.pts + " Points";
+            let sorted = [...players].sort((a,b)=>b.pts-a.pts).slice(0,10);
+            document.getElementById('leaderboard').innerHTML = sorted.map((s,i)=>`<div>${i+1}. ${s.name} - <b>${s.pts}</b></div>`).join('');
         }
 
-        function renderStats() {
-            document.getElementById('active-user-name').textContent = activeUser;
-            let p = players.find(x => x.name === activeUser) || {pts:0};
-            document.getElementById('active-user-pts').textContent = p.pts + " Points";
-            let sorted = [...players].sort((a,b) => b.pts - a.pts).slice(0, 10);
-            document.getElementById('hall-of-fame').innerHTML = sorted.map((s,i) => `<tr><td>${i+1}. ${s.name}</td><td style="text-align:right"><b>${s.pts}</b></td></tr>`).join('');
-        }
-
-        // --- Game Logic ---
         const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
-        const SQ = 60, FILES = 10, RANKS = 8;
         const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹','k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🏹' };
         const vals = { 'k':1000,'q':9,'r':5,'a':4,'b':3,'n':3,'p':1 };
 
-        let board = [], turn = 'w', selected = null, shadows = [], caps = {w:[], b:[]}, gameOver = false;
+        let board = [], turn = 'w', sel = null, shadows = [], caps = {w:[], b:[]}, over = false;
 
-        function idx(f, r) { return f * RANKS + r; }
+        function idx(f, r) { return f * 8 + r; }
         function isW(p) { return p && p === p.toUpperCase(); }
 
         function init() {
-            board = new Array(80).fill(null); turn = 'w'; shadows = []; caps = {w:[], b:[]}; gameOver = false;
-            const setup = ['A','R','N','B','Q','K','B','N','R','A'];
-            for(let f=0; f<10; f++) { 
-                board[idx(f,0)] = setup[f]; board[idx(f,1)] = 'P';
-                board[idx(f,6)] = 'p'; board[idx(f,7)] = setup[f].toLowerCase();
-            }
-            renderStats(); draw();
+            board = new Array(80).fill(null); turn = 'w'; sel = null; shadows = []; caps = {w:[], b:[]}; over = false;
+            const row = ['A','R','N','B','Q','K','B','N','R','A'];
+            for(let f=0; f<10; f++) { board[idx(f,0)]=row[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=row[f].toLowerCase(); }
+            updateUI(); draw();
         }
 
-        function moveLegal(s, t, b) {
+        function canMove(s, t, b) {
             let p = b[s], tp = b[t];
             if(!p || (tp && isW(p) === isW(tp))) return false;
             let sf = Math.floor(s/8), sr = s%8, ef = Math.floor(t/8), er = t%8;
             let dx = ef-sf, dy = er-sr, type = p.toUpperCase();
 
-            if(type === 'P') {
+            if(type==='P') {
                 let d = isW(p)?1:-1;
                 if(dx===0 && dy===d && !tp) return true;
                 if(dx===0 && dy===2*d && sr===(isW(p)?1:6) && !tp && !b[idx(sf,sr+d)]) return true;
                 if(Math.abs(dx)===1 && dy===d && tp) return true;
                 return false;
             }
-            if(type === 'N') return [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]].some(n => n[0]===dx && n[1]===dy);
-            if(type === 'K') return Math.max(Math.abs(dx), Math.abs(dy)) <= 1;
-            if(type === 'A') {
-                const dirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
-                for(let [ox, oy] of dirs) {
+            if(type==='N') return [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]].some(n=>n[0]===dx && n[1]===dy);
+            if(type==='K') return Math.max(Math.abs(dx), Math.abs(dy)) <= 1;
+            if(type==='A') {
+                const ds = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
+                for(let [ox, oy] of ds) {
                     let f3 = sf+ox*3, r3 = sr+oy*3;
                     if(f3<0||f3>=10||r3<0||r3>=8) continue;
                     if((ox===0||oy===0) && (b[idx(sf+ox,sr+oy)] || b[idx(sf+ox*2,sr+oy*2)])) continue;
-                    let rts = [[-ox-oy,-oy+ox],[-ox+oy,-oy-ox]];
-                    for(let [rx,ry] of rts) if(f3+Math.sign(rx)===ef && r3+Math.sign(ry)===er) return true;
+                    let rs = [[-ox-oy,-oy+ox],[-ox+oy,-oy-ox]];
+                    for(let [rx,ry] of rs) if(f3+Math.sign(rx)===ef && r3+Math.sign(ry)===er) return true;
                 }
                 return false;
             }
-            let slides = type==='R'?[[0,1],[0,-1],[1,0],[-1,0]]:type==='B'?[[1,1],[1,-1],[-1,1],[-1,-1]]:[[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
-            for(let [sx, sy] of slides) {
+            let sl = type==='R'?[[0,1],[0,-1],[1,0],[-1,0]]:type==='B'?[[1,1],[1,-1],[-1,1],[-1,-1]]:[[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
+            for(let [sx, sy] of sl) {
                 if(sx*dy === sy*dx && Math.sign(sx)===Math.sign(dx) && Math.sign(sy)===Math.sign(dy)) {
                     let cf=sf+sx, cr=sr+sy;
                     while(cf!==ef || cr!==er) { if(b[idx(cf,cr)]) return false; cf+=sx; cr+=sy; }
@@ -217,89 +167,73 @@
             return false;
         }
 
-        function getMoves(sq, b) {
+        function getL(sq, b) {
             let m = [];
             for(let t=0; t<80; t++) {
-                if(moveLegal(sq, t, b)) {
-                    let old = b[t], p = b[sq]; b[t]=p; b[sq]=null;
-                    let k = b.findIndex(x => x === (isW(p)?'K':'k')), safe = true;
-                    if(k!==-1) for(let i=0; i<80; i++) if(b[i] && isW(b[i])!==isW(p) && moveLegal(i, k, b)) safe = false;
-                    b[sq]=p; b[t]=old; if(safe) m.push(t);
+                if(canMove(sq, t, b)) {
+                    let o = b[t], p = b[sq]; b[t]=p; b[sq]=null;
+                    let k = b.findIndex(x=>x===(isW(p)?'K':'k')), ok = true;
+                    if(k!==-1) for(let i=0; i<80; i++) if(b[i] && isW(b[i])!==isW(p) && canMove(i, k, b)) ok = false;
+                    b[sq]=p; b[t]=o; if(ok) m.push(t);
                 }
             }
             return m;
         }
 
-        // --- Challenge AI (Minimax) ---
-        function evalBoard(b) {
+        function evaluate(b) {
             let s = 0;
-            for(let i=0; i<80; i++) if(b[i]) s += isW(b[i]) ? vals[b[i].toLowerCase()] : -vals[b[i].toLowerCase()];
+            for(let i=0; i<80; i++) if(b[i]) s += isW(b[i])?vals[b[i].toLowerCase()]:-vals[b[i].toLowerCase()];
             return s;
         }
 
-        function minimax(b, depth, alpha, beta, isMax) {
-            if(depth === 0) return evalBoard(b);
-            let moves = [];
-            for(let i=0; i<80; i++) if(b[i] && isW(b[i])===isMax) getMoves(i,b).forEach(m => moves.push({s:i, t:m}));
-            if(isMax) {
-                let v = -9999;
-                for(let m of moves) {
-                    let old = b[m.t]; b[m.t]=b[m.s]; b[m.s]=null;
-                    v = Math.max(v, minimax(b, depth-1, alpha, beta, false));
-                    b[m.s]=b[m.t]; b[m.t]=old; alpha = Math.max(alpha, v);
-                    if(beta <= alpha) break;
-                }
-                return v;
+        function minimax(b, d, a, bt, isM) {
+            if(d===0) return evaluate(b);
+            let ms = [];
+            for(let i=0; i<80; i++) if(b[i] && isW(b[i])===isM) getL(i,b).forEach(m=>ms.push({s:i,t:m}));
+            if(isM) {
+                let v = -999; for(let m of ms) {
+                    let o = b[m.t]; b[m.t]=b[m.s]; b[m.s]=null; v = Math.max(v, minimax(b, d-1, a, bt, false));
+                    b[m.s]=b[m.t]; b[m.t]=o; a = Math.max(a, v); if(bt<=a) break;
+                } return v;
             } else {
-                let v = 9999;
-                for(let m of moves) {
-                    let old = b[m.t]; b[m.t]=b[m.s]; b[m.s]=null;
-                    v = Math.min(v, minimax(b, depth-1, alpha, beta, true));
-                    b[m.s]=b[m.t]; b[m.t]=old; beta = Math.min(beta, v);
-                    if(beta <= alpha) break;
-                }
-                return v;
+                let v = 999; for(let m of ms) {
+                    let o = b[m.t]; b[m.t]=b[m.s]; b[m.s]=null; v = Math.min(v, minimax(b, d-1, a, bt, true));
+                    b[m.s]=b[m.t]; b[m.t]=o; bt = Math.min(bt, v); if(bt<=a) break;
+                } return v;
             }
         }
 
-        function aiMove() {
-            let moves = [];
-            for(let i=0; i<80; i++) if(board[i] && !isW(board[i])) getMoves(i, board).forEach(m => moves.push({s:i, t:m}));
-            if(moves.length === 0) return finish();
-            let bestMove = null, bestVal = 9999;
-            for(let m of moves) {
-                let old = board[m.t]; board[m.t]=board[m.s]; board[m.s]=null;
-                let v = minimax(board, 2, -10000, 10000, true);
-                board[m.s]=board[m.t]; board[m.t]=old;
-                if(v < bestVal) { bestVal = v; bestMove = m; }
+        function ai() {
+            let ms = []; for(let i=0; i<80; i++) if(board[i] && !isW(board[i])) getL(i,board).forEach(m=>ms.push({s:i,t:m}));
+            if(ms.length===0) return check();
+            let bM = null, bV = 999;
+            for(let m of ms) {
+                let o = board[m.t]; board[m.t]=board[m.s]; board[m.s]=null;
+                let v = minimax(board, 2, -1000, 1000, true);
+                board[m.s]=board[m.t]; board[m.t]=o;
+                if(v < bV) { bV = v; bM = m; }
             }
-            execMove(bestMove.s, bestMove.t);
+            exec(bM.s, bM.t);
         }
 
-        function execMove(s, t) {
+        function exec(s, t) {
             let p = board[s], tp = board[t];
             if(tp) isW(tp)?caps.w.push(tp):caps.b.push(tp);
             board[t]=p; board[s]=null;
-            if(p==='P' && t%8===7) board[t]='Q';
-            if(p==='p' && t%8===0) board[t]='q';
-            turn = turn==='w'?'b':'w';
-            draw(); checkState();
-            if(turn==='b' && !gameOver) setTimeout(aiMove, 500);
+            if(p==='P' && t%8===7) board[t]='Q'; if(p==='p' && t%8===0) board[t]='q';
+            turn = turn==='w'?'b':'w'; draw(); check();
+            if(turn==='b' && !over) setTimeout(ai, 500);
         }
 
-        function checkState() {
-            let m = false;
-            for(let i=0; i<80; i++) if(board[i] && isW(board[i])===(turn==='w') && getMoves(i, board).length > 0) m = true;
-            if(!m) finish();
-        }
-
-        function finish() {
-            gameOver = true;
-            let k = board.findIndex(x => x === (turn==='w'?'K':'k')), inCheck = false;
-            for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && moveLegal(i, k, board)) inCheck = true;
-            if(inCheck) { alert(turn==='b'?"CHECKMATE - YOU WIN!":"CHECKMATE - AI WINS!"); if(turn==='b') updateScore('w'); }
-            else { alert("STALEMATE"); updateScore('d'); }
-            init();
+        function check() {
+            let m = false; for(let i=0; i<80; i++) if(board[i] && isW(board[i])===(turn==='w') && getL(i,board).length>0) m = true;
+            if(!m) {
+                over = true; let k = board.findIndex(x=>x===(turn==='w'?'K':'k')), c = false;
+                for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && canMove(i,k,board)) c = true;
+                if(c) { alert(turn==='b'?"WIN!":"LOST!"); if(turn==='b') record('w'); }
+                else { alert("DRAW"); record('d'); }
+                init();
+            }
         }
 
         function draw() {
@@ -310,30 +244,36 @@
                     ctx.fillRect(f*60, (7-r)*60, 60, 60);
                     if(shadows.includes(idx(f,r))) { ctx.fillStyle = "rgba(0,0,0,0.1)"; ctx.beginPath(); ctx.arc(f*60+30, (7-r)*60+30, 8, 0, 7); ctx.fill(); }
                     let p = board[idx(f,r)];
-                    if(p) { ctx.fillStyle = isW(p)?'#fff':'#000'; ctx.font='42px serif'; ctx.textAlign='center'; ctx.fillText(symbols[p], f*60+30, (7-r)*60+44); }
+                    if(p) {
+                        // DISTINCT ARCHER COLOR LOGIC
+                        if(p.toUpperCase() === 'A') ctx.fillStyle = isW(p) ? '#d4af37' : '#8b0000';
+                        else ctx.fillStyle = isW(p) ? '#fff' : '#000';
+                        
+                        ctx.font='42px serif'; ctx.textAlign='center'; 
+                        ctx.fillText(symbols[p], f*60+30, (7-r)*60+44);
+                    }
                 }
             }
-            document.getElementById('white-captures').textContent = caps.w.map(x => symbols[x]).join('');
-            document.getElementById('black-captures').textContent = caps.b.map(x => symbols[x]).join('');
+            document.getElementById('caps-w').textContent = caps.w.map(x=>symbols[x]).join('');
+            document.getElementById('caps-b').textContent = caps.b.map(x=>symbols[x]).join('');
             document.getElementById('status').textContent = turn==='w'?"Your Turn":"AI Thinking...";
         }
 
         function input(e) {
-            if(turn==='b' || gameOver) return;
+            if(turn==='b' || over) return;
             const r = canvas.getBoundingClientRect();
             const cx = e.touches ? e.touches[0].clientX : e.clientX;
             const cy = e.touches ? e.touches[0].clientY : e.clientY;
             const f = Math.floor(((cx-r.left)*(600/r.width))/60);
             const rIdx = 7-Math.floor(((cy-r.top)*(480/r.height))/60);
             const s = idx(f,rIdx);
-            if(selected === null) { if(board[s] && isW(board[s])) { selected = s; shadows = getMoves(s, board); } }
-            else { if(shadows.includes(s)) execMove(selected, s); selected = null; shadows = []; }
+            if(sel === null) { if(board[s] && isW(board[s])) { sel = s; shadows = getL(s, board); } }
+            else { if(shadows.includes(s)) exec(sel, s); sel = null; shadows = []; }
             draw();
         }
 
         canvas.addEventListener('touchstart', e => { e.preventDefault(); input(e); }, {passive:false});
         canvas.addEventListener('mousedown', input);
-
         init();
     </script>
 </body>
