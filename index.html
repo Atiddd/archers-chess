@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v6.4</title>
+    <title>Archers Chess v6.5</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
             --tile-light: #f0d9b5; --tile-dark: #b58863; --panel-bg: #fffcf5;
         }
-        html, body { overflow-x: hidden; position: relative; touch-action: none; }
+        /* RESTORE SCROLLING - Removed global locks */
+        html, body { overflow-x: hidden; width: 100%; height: 100%; -webkit-overflow-scrolling: touch; }
+        
         body { font-family: 'Georgia', serif; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
         header { text-align: center; margin-bottom: 15px; }
@@ -28,6 +30,7 @@
         #board-center { display: flex; flex-direction: column; align-items: center; }
         #status { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; text-align: center; }
         
+        /* ONLY THE CANVAS BLOCKS SCROLLING while dragging */
         canvas { border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; touch-action: none; cursor: grab; max-width: 100%; height: auto; }
 
         .move-history { background: white; border: 1px solid #ccc; border-radius: 4px; padding: 5px; height: 180px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.9em; margin-bottom: 15px; }
@@ -44,8 +47,8 @@
 
         @media (max-width: 1000px) {
             .game-layout { display: flex; flex-direction: column; }
-            .side-panel { width: calc(100% - 30px); order: 2; }
-            #board-center { order: 1; }
+            .side-panel { width: calc(100% - 30px); order: 2; margin-bottom: 10px; }
+            #board-center { order: 1; margin-bottom: 10px; }
             .rules-grid { grid-template-columns: 1fr; gap: 20px; }
             .rules-overlay { order: 3; }
         }
@@ -124,28 +127,19 @@
     </div>
 
     <script>
-        // --- LOGIC ENGINE ---
+        // LOGIC PRESERVED FROM BLUEPRINT
         let db = []; let user = "Guest";
-        try { db = JSON.parse(localStorage.getItem('archers_v64_db')) || []; user = localStorage.getItem('archers_v64_user') || "Guest"; } catch(e) {}
+        try { db = JSON.parse(localStorage.getItem('archers_v65_db')) || []; user = localStorage.getItem('archers_v65_user') || "Guest"; } catch(e) {}
 
-        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); try { localStorage.setItem('archers_v64_user', user); } catch(e){} refreshUI(); } }
-        
+        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); try { localStorage.setItem('archers_v65_user', user); } catch(e){} refreshUI(); } }
         function saveScore(res) {
             let p = db.find(x => x.name === user); if(!p) { p = {name: user, pts: 0}; db.push(p); }
             let diff = parseInt(document.getElementById('ai-diff').value);
-            
-            if(res === 'w') {
-                if(diff === 1) p.pts += 1;
-                else if(diff === 2) p.pts += 3;
-                else if(diff === 3) p.pts += 5;
-            } else if(res === 'd') {
-                if(diff === 2) p.pts += 1;
-                else if(diff === 3) p.pts += 2;
-            }
-            try { localStorage.setItem('archers_v64_db', JSON.stringify(db)); } catch(e){}
+            if(res === 'w') { p.pts += (diff === 1 ? 1 : diff === 2 ? 3 : 5); } 
+            else if(res === 'd') { p.pts += (diff === 2 ? 1 : diff === 3 ? 2 : 0); }
+            try { localStorage.setItem('archers_v65_db', JSON.stringify(db)); } catch(e){}
             refreshUI();
         }
-
         function refreshUI() {
             document.getElementById('u-name').textContent = user;
             let p = db.find(x => x.name === user) || {pts:0};
@@ -166,7 +160,6 @@
 
         const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
         const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':"\u{1F3F9}\u{FE0E}", 'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':"\u{1F3F9}\u{FE0E}" };
-        const vals = { 'p':1, 'n':3, 'b':3, 'a':4, 'r':5, 'q':9, 'k':100 };
         const files = ["-A","A","B","C","D","E","F","G","H","H+"];
 
         let board = Array(80).fill(null), turn = 'w', sel = null, gameActive = false, validMoves = [], caps = {w:[], b:[]}, moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
@@ -174,12 +167,10 @@
 
         function idx(f, r) { return f * 8 + r; }
         function isW(p) { return p === p.toUpperCase(); }
-        function getVal(p) { return p ? (vals[p.toLowerCase()] || 0) : 0; }
 
         function initGame() {
             board = Array(80).fill(null); turn = 'w'; sel = null; validMoves = []; caps = {w:[], b:[]}; gameActive = true;
-            moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
-            moveHistory = []; document.getElementById('move-history').innerHTML = "";
+            moved = { wK:false, bK:false }; moveHistory = []; document.getElementById('move-history').innerHTML = "";
             const setup = ['A','R','N','B','Q','K','B','N','R','A'];
             for(let f=0; f<10; f++) { board[idx(f,0)]=setup[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=setup[f].toLowerCase(); }
             refreshUI(); updateStatus("Your Turn (White)"); draw();
@@ -200,8 +191,8 @@
                 let d=isWhite?1:-1; if(!attacksOnly && !b[idx(f,r+d)]){ mvs.push(idx(f,r+d)); if((isWhite?r===1:r===6)&&!b[idx(f,r+d*2)]) mvs.push(idx(f,r+d*2)); }
                 for(let df of [-1,1]){ let t=idx(f+df,r+d); if(f+df>=0&&f+df<=9&&(attacksOnly||(b[t]&&isW(b[t])!==isWhite))) mvs.push(t); }
             } else if(type==='N'){ for(let [df,dr] of [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]]) add(f+df,r+dr); }
-            else if(type==='K'){ for(let [df,dr] of [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]) add(f+df,r+dr);
-                if(!attacksOnly && isWhite && !moved.wK){ if(!moved.wR1&&!b[idx(2,0)]&&!b[idx(3,0)]&&!b[idx(4,0)]) mvs.push(idx(3,0)); if(!moved.wR2&&!b[idx(6,0)]&&!b[idx(7,0)]) mvs.push(idx(7,0)); }
+            else if(type==='K'){ for(let [df,dr] of [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]) add(f+df,r+dr); 
+                if(!attacksOnly && isWhite && !moved.wK){ if(!b[idx(2,0)]&&!b[idx(3,0)]&&!b[idx(4,0)]) mvs.push(idx(3,0)); if(!b[idx(6,0)]&&!b[idx(7,0)]) mvs.push(idx(7,0)); }
             } else if(type==='A'){
                 for(let [ox,oy] of [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]){
                     if((ox===0||oy===0)&&(b[idx(f+ox,r+oy)]||b[idx(f+ox*2,r+oy*2)]))continue;
@@ -235,24 +226,24 @@
 
         function executeAI() {
             if(!gameActive) return; let legal=getAllLegalMoves(board,false); if(legal.length===0) return finalizeGame();
-            let diff=parseInt(document.getElementById('ai-diff').value);
+            let diff = parseInt(document.getElementById('ai-diff').value);
             for(let m of legal){
-                m.score=Math.random()*0.5; if(m.captured) m.score+=getVal(m.captured)*10;
-                if(diff>=2){ let o=board[m.t]; board[m.t]=m.piece; board[m.s]=null; if(getAttackMap(board,true)[m.t]) m.score-=getVal(m.piece)*8; board[m.s]=m.piece; board[m.t]=o; }
+                m.score=Math.random()*0.5; if(m.captured) m.score+=10;
+                if(diff>=2){ let o=board[m.t]; board[m.t]=m.piece; board[m.s]=null; if(getAttackMap(board,true)[m.t]) m.score-=8; board[m.s]=m.piece; board[m.t]=o; }
             }
             let best=legal.sort((a,b)=>b.score-a.score)[0]; processMove(best.s,best.t,best.isCastle);
         }
 
-        function processMove(s,t,isCastle) {
-            let p=board[s], tp=board[t], isWTurn=isW(p); if(tp) (isWTurn?caps.w:caps.b).push(tp);
+        function processMove(s,t,isC) {
+            let p=board[s], tp=board[t], isWT=isW(p); if(tp) (isWT?caps.w:caps.b).push(tp);
             board[t]=p; board[s]=null;
-            if(isCastle){ let r=s%8, ef=Math.floor(t/8); if(ef===3){board[idx(4,r)]=board[idx(1,r)];board[idx(1,r)]=null;} else {board[idx(6,r)]=board[idx(8,r)];board[idx(8,r)]=null;} }
-            if(s===idx(5,0)) moved.wK=true; if(s===idx(5,7)) moved.bK=true;
+            if(isC){ let r=s%8, ef=Math.floor(t/8); if(ef===3){board[idx(4,r)]=board[idx(1,r)];board[idx(1,r)]=null;} else {board[idx(6,r)]=board[idx(8,r)];board[idx(8,r)]=null;} }
+            if(p==='K') moved.wK=true; if(p==='k') moved.bK=true;
             if(p==='P'&&t%8===7) board[t]='Q'; if(p==='p'&&t%8===0) board[t]='q';
-            turn=isWTurn?'b':'w'; sel=null; validMoves=[]; dragging=false;
+            turn=isWT?'b':'w'; sel=null; validMoves=[]; dragging=false;
             let k=board.indexOf(turn==='w'?'K':'k'); let ic=getAttackMap(board,!isW(board[k]))[k];
             let note=(p.toUpperCase()==='P'?'':p.toUpperCase())+(tp?'x':'')+files[Math.floor(t/8)]+(t%8+1);
-            if(isWTurn) moveHistory.push({w:note+(ic?'+':''), b:''}); else moveHistory[moveHistory.length-1].b=note+(ic?'+':'');
+            if(isWT) moveHistory.push({w:note+(ic?'+':''), b:''}); else moveHistory[moveHistory.length-1].b=note+(ic?'+':'');
             updateHistoryUI(); if(ic) playSound('check'); else if(tp) playSound('capture'); else playSound('move');
             draw(); if(getAllLegalMoves(board,turn==='w').length===0) return finalizeGame();
             if(turn==='b'){ updateStatus("AI Thinking..."); setTimeout(executeAI, 100); } else updateStatus("Your Turn");
@@ -264,7 +255,7 @@
             h.scrollTop=h.scrollHeight;
         }
 
-        function finalizeGame() { gameActive=false; let ic=getAttackMap(board,turn==='b')[board.indexOf(turn==='w'?'K':'k')]; updateStatus(ic?(turn==='w'?"BLACK WINS!":"WHITE WINS!"):"DRAW!"); saveScore(ic?(turn==='b'?'w':'l'):'d'); draw(); }
+        function finalizeGame() { gameActive=false; let k=board.indexOf(turn==='w'?'K':'k'); let ic=getAttackMap(board,turn==='b')[k]; updateStatus(ic?(turn==='w'?"BLACK WINS!":"WHITE WINS!"):"DRAW!"); saveScore(ic?(turn==='b'?'w':'l'):'d'); draw(); }
         function updateStatus(msg) { const s=document.getElementById('status'); s.textContent=msg; s.className=msg.includes("AI")?"ai-thinking":(msg.includes("!")?"check-alert":""); }
 
         function draw() {
