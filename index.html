@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess v1.0 - Official Ruleset</title>
+    <title>Archers Chess v1.1 - Professional Edition</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
@@ -13,38 +13,33 @@
         h1 { color: var(--primary); margin: 0 0 5px 0; font-size: 2.2em; text-transform: uppercase; letter-spacing: 2px; }
         .author-tag { font-style: italic; color: #795548; margin-bottom: 15px; font-size: 0.9em; }
         
-        /* Game Layout */
         .game-container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
         
         #board-wrapper { position: relative; }
         canvas { border: 8px solid var(--primary); cursor: pointer; background: #deb887; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border-radius: 4px; }
         
-        /* Overlays & UI */
         #game-over-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); color: white; display: none;
+            background: rgba(0,0,0,0.85); color: white; display: none;
             flex-direction: column; justify-content: center; align-items: center;
-            border-radius: 4px; z-index: 10;
+            border-radius: 4px; z-index: 100;
         }
         #game-over-overlay h2 { font-size: 3em; margin: 0; color: #ffeb3b; text-shadow: 2px 2px 4px #000; }
 
-        .side-panel { width: 170px; background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; text-align: left; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); }
-        .side-panel h3 { margin-top: 0; font-size: 1.1em; border-bottom: 2px solid var(--primary); padding-bottom: 5px; color: var(--primary); }
-        .capture-group { height: 160px; overflow-y: auto; font-size: 26px; line-height: 1.2; letter-spacing: 2px; }
+        .side-panel { width: 170px; background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; text-align: left; }
+        .capture-group { height: 160px; font-size: 26px; line-height: 1.2; letter-spacing: 2px; }
         
         #status { font-size: 22px; font-weight: bold; margin: 15px; height: 32px; color: var(--primary); }
         .check-alert { color: var(--accent); animation: blink 0.8s infinite; }
         @keyframes blink { 50% { opacity: 0; } }
 
-        button { font-size: 15px; padding: 10px 25px; border-radius: 4px; cursor: pointer; border: none; background: var(--primary); color: white; font-weight: bold; transition: 0.3s; }
+        button { font-size: 15px; padding: 10px 25px; border-radius: 4px; cursor: pointer; border: none; background: var(--primary); color: white; font-weight: bold; }
         button:hover { background: var(--accent); }
 
-        /* Manual Styling */
         .manual-container { max-width: 850px; margin: 40px auto; text-align: left; }
-        details { background: #fff; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        summary { padding: 15px 20px; font-size: 18px; font-weight: bold; cursor: pointer; background: var(--primary); color: white; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+        details { background: #fff; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; }
+        summary { padding: 15px 20px; font-size: 18px; font-weight: bold; cursor: pointer; background: var(--primary); color: white; }
         .manual-content { padding: 25px; line-height: 1.6; }
-        h4 { color: var(--accent); border-bottom: 1px solid #ddd; margin-top: 20px; }
         .notation-key { background: #fbe9e7; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-family: monospace; }
     </style>
 </head>
@@ -55,6 +50,7 @@
 
     <div class="controls">
         <button onclick="init()">Reset Field of Play</button>
+        <p style="font-size: 0.8em; margin-top: 5px;">Audio Enabled: 🔊</p>
     </div>
 
     <div id="status">Your Turn</div>
@@ -81,32 +77,41 @@
     </div>
 
     <div class="manual-container">
-        <details open>
+        <details>
             <summary>📜 OFFICIAL RULES & MOVEMENT APPENDICES</summary>
             <div class="manual-content">
                 <h4>1. The Archer Piece ($A$)</h4>
-                <p>The Archer is a ranged piece (Value: 4) moving in two phases:
-                <ul>
-                    <li><strong>Outward ($O$):</strong> Exactly 3 squares (Straight or Diagonal).</li>
-                    <li><strong>Return ($F$):</strong> Exactly 1 square back toward origin at a 45° offset.</li>
-                </ul>
-                <strong>Note:</strong> Straight outward moves are blocked by pieces. Diagonal outward moves may jump.</p>
-                
-                <h4>2. The 10x8 Field of Play</h4>
-                <p>Files: <span class="notation-key">–A, A, B, C, D, E, F, G, H, H+</span>. Ranks: 1–8.</p>
-                
-                <h4>3. Victory Conditions</h4>
-                <p><strong>Check:</strong> Occurs when a King is under attack (including by an Archer's final square).<br>
-                <strong>Checkmate:</strong> Occurs when a King is in Check and has no legal means of escape.</p>
+                <p>Movement Phases: <strong>Outward ($O$)</strong> 3 squares; <strong>Return ($F$)</strong> 1 square diagonal offset. 
+                The King cannot be captured; the game ends only by Checkmate or Stalemate.</p>
+                <h4>2. Notation & Layout</h4>
+                <p>Files: <span class="notation-key">–A, A, B, C, D, E, F, G, H, H+</span>. AI plays at "Normal" difficulty.</p>
             </div>
         </details>
     </div>
 
     <script>
+        // --- Audio Context for Game Sounds ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type, duration, vol) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const sounds = {
+            move: () => playTone(400, 'sine', 0.1, 0.1),
+            capture: () => { playTone(300, 'triangle', 0.2, 0.15); playTone(150, 'triangle', 0.2, 0.1); },
+            check: () => { playTone(880, 'sawtooth', 0.1, 0.05); setTimeout(() => playTone(880, 'sawtooth', 0.1, 0.05), 150); },
+            win: () => { [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playTone(f, 'square', 0.4, 0.05), i * 150)); }
+        };
+
         const canvas = document.getElementById('board');
         const ctx = canvas.getContext('2d');
         const SQ = 60; const FILES = 10; const RANKS = 8;
-        
         const pieceSymbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A':'🏹','k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a':'🏹' };
         const fileLabels = ['–A','A','B','C','D','E','F','G','H','H+'];
 
@@ -114,10 +119,10 @@
         let turn = 'w', gameOver = false, selected = null, captures = { w: [], b: [] };
 
         function idx(f, r) { return f * RANKS + r; }
-        function isOnBoard(f,r) { return f>=0 && f<FILES && r>=0 && r<RANKS; }
         function isWhite(p) { return p && p === p.toUpperCase(); }
 
         function init() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             board.fill(null); captures = { w: [], b: [] }; gameOver = false; turn = 'w'; selected = null;
             const setup = ['A','R','N','B','Q','K','B','N','R','A'];
             for(let f=0; f<FILES; f++) {
@@ -147,7 +152,7 @@
                 const qd = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
                 for (let [ox, oy] of qd) {
                     let f3 = sf+ox*3, r3 = sr+oy*3;
-                    if (!isOnBoard(f3,r3)) continue;
+                    if (f3<0||f3>=FILES||r3<0||r3>=RANKS) continue;
                     if ((ox===0 || oy===0) && (board[idx(sf+ox, sr+oy)] || board[idx(sf+ox*2, sr+oy*2)])) continue;
                     const bOffsets = [[-ox-oy, -oy+ox], [-ox+oy, -oy-ox]];
                     for (let [bx, by] of bOffsets) if (f3 + Math.sign(bx) === ef && r3 + Math.sign(by) === er) return true;
@@ -181,23 +186,37 @@
             for (let t = 0; t < board.length; t++) {
                 if (validateMoveBasic(sq, t)) {
                     let temp = board[t], p = board[sq];
+                    // STRICT: Cannot capture a king
+                    if (temp && temp.toUpperCase() === 'K') continue;
                     board[t] = p; board[sq] = null;
-                    if (!isKingInCheck(isWhite(p) ? 'w' : 'b')) moves.push(t);
+                    let safe = !isKingInCheck(isWhite(p) ? 'w' : 'b');
                     board[sq] = p; board[t] = temp;
+                    if (safe) moves.push(t);
                 }
             }
             return moves;
         }
 
         function makeMove(s, t) {
+            if (gameOver) return;
             let p = board[s], tp = board[t];
-            if (tp) { if (isWhite(tp)) captures.w.push(tp); else captures.b.push(tp); }
+            
+            if (tp) { 
+                if (isWhite(tp)) captures.w.push(tp); else captures.b.push(tp); 
+                sounds.capture();
+            } else {
+                sounds.move();
+            }
+
             board[t] = p; board[s] = null;
             if (p === 'P' && t % RANKS === 7) board[t] = 'Q';
             if (p === 'p' && t % RANKS === 0) board[t] = 'q';
+            
             turn = turn === 'w' ? 'b' : 'w';
             updateUI(); drawBoard();
             
+            if (isKingInCheck(turn)) sounds.check();
+
             let hasMoves = false;
             for (let i=0; i<board.length; i++) {
                 if (board[i] && isWhite(board[i]) === (turn==='w')) {
@@ -207,7 +226,9 @@
             if (!hasMoves) {
                 gameOver = true;
                 document.getElementById('game-over-overlay').style.display = 'flex';
-                document.getElementById('win-message').textContent = isKingInCheck(turn) ? (turn==='w'?"AI WINS!":"YOU WIN!") : "STALEMATE";
+                let winMsg = isKingInCheck(turn) ? (turn==='w'?"AI WINS!":"YOU WIN!") : "STALEMATE";
+                document.getElementById('win-message').textContent = winMsg;
+                if (winMsg === "YOU WIN!") sounds.win();
             }
         }
 
@@ -224,10 +245,9 @@
             for(let r=7; r>=0; r--) {
                 for(let f=0; f<FILES; f++) {
                     let x = f*SQ, y = (7-r)*SQ;
-                    let isLight = (f+r)%2===0;
-                    ctx.fillStyle = isLight ? '#f0d9b5' : '#b58863';
+                    ctx.fillStyle = (f+r)%2===0 ? '#f0d9b5' : '#b58863';
                     ctx.fillRect(x,y,SQ,SQ);
-                    ctx.font = '10px Arial'; ctx.textAlign = 'left'; ctx.fillStyle = isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)';
+                    ctx.font = '10px Arial'; ctx.textAlign = 'left'; ctx.fillStyle = (f+r)%2===0 ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)';
                     ctx.fillText(fileLabels[f] + (r + 1), x + 4, y + 10);
                     let p = board[idx(f,r)];
                     if (p) {
@@ -246,17 +266,18 @@
             const f = Math.floor((e.clientX-rect.left)/SQ), r = 7-Math.floor((e.clientY-rect.top)/SQ);
             const sq = idx(f,r);
             if (selected === null) {
-                if (board[sq] && isWhite(board[sq])) { selected = sq; drawBoard(); }
+                if (board[sq] && isWhite(board[sq])) { selected = sq; if (audioCtx.state === 'suspended') audioCtx.resume(); drawBoard(); }
             } else {
                 if (getValidMoves(selected).includes(sq)) {
                     makeMove(selected, sq);
-                    if (!gameOver) setTimeout(aiMove, 600);
+                    if (!gameOver) setTimeout(aiMove, 800);
                 }
                 selected = null; drawBoard();
             }
         });
 
         function aiMove() {
+            if (gameOver) return;
             let all = [];
             for (let i=0; i<board.length; i++) {
                 if (board[i] && !isWhite(board[i])) {
@@ -269,9 +290,7 @@
                 makeMove(m.f, m.t);
             }
         }
-
         init();
     </script>
 </body>
 </html>
-
