@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v6.1</title>
+    <title>Archers Chess v6.2</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
@@ -17,7 +17,7 @@
 
         .game-layout { display: grid; grid-template-columns: 260px 660px 260px; gap: 20px; max-width: 1250px; width: 100%; }
 
-        .side-panel { background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); height: fit-content; }
+        .side-panel { background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); height: fit-content; display: flex; flex-direction: column; }
         .side-panel h3 { margin: 0 0 10px 0; font-size: 1.1em; border-bottom: 1px solid var(--primary); text-transform: uppercase; }
         
         .user-box { background: #efe6d5; padding: 12px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #dcd0b9; }
@@ -26,12 +26,19 @@
 
         #board-center { display: flex; flex-direction: column; align-items: center; }
         #status { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; transition: all 0.2s; }
+        
         .ai-thinking { color: var(--accent) !important; animation: pulse 1s infinite; }
         .check-alert { color: #ff0000 !important; animation: shake 0.5s; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
         
-        canvas { border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; cursor: pointer; touch-action: none; }
+        canvas { border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; touch-action: none; cursor: grab; }
+        canvas:active { cursor: grabbing; }
+
+        .move-history { flex-grow: 1; background: white; border: 1px solid #ccc; border-radius: 4px; padding: 5px; height: 180px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.9em; margin-bottom: 15px; }
+        .move-row { display: flex; padding: 2px 0; border-bottom: 1px solid #f0f0f0; }
+        .move-num { width: 30px; color: #888; text-align: right; padding-right: 10px; }
+        .move-w, .move-b { width: 45%; font-weight: bold; }
         
         .rules-overlay { grid-column: 1 / span 3; background: white; padding: 25px; border-radius: 8px; border: 1px solid #ccc; margin-top: 30px; line-height: 1.6; }
         .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
@@ -82,13 +89,13 @@
         </div>
 
         <div class="side-panel">
+            <h3>Move History</h3>
+            <div class="move-history" id="move-history"></div>
+
             <h3>Captured Pieces</h3>
-            <div id="caps-black" style="font-size:24px; min-height:45px; display:flex; flex-wrap:wrap;"></div>
+            <div id="caps-black" style="font-size:24px; min-height:35px; display:flex; flex-wrap:wrap;"></div>
             <hr style="border:0.5px solid #ddd; margin:10px 0;">
-            <div id="caps-white" style="font-size:24px; min-height:45px; display:flex; flex-wrap:wrap;"></div>
-            
-            <h3 style="margin-top:20px;">Engine Status</h3>
-            <p style="font-size:0.85em; color:#228b22; font-weight:bold;">✓ Map Architecture<br>✓ Rules Loaded<br>✓ Audio & Visuals Active</p>
+            <div id="caps-white" style="font-size:24px; min-height:35px; display:flex; flex-wrap:wrap;"></div>
         </div>
 
         <div class="rules-overlay">
@@ -119,14 +126,14 @@
         // --- 1. USER & DB SYSTEM ---
         let db = [];
         let user = "Guest";
-        try { db = JSON.parse(localStorage.getItem('archers_v61_db')) || []; user = localStorage.getItem('archers_v61_user') || "Guest"; } catch(e) {}
+        try { db = JSON.parse(localStorage.getItem('archers_v62_db')) || []; user = localStorage.getItem('archers_v62_user') || "Guest"; } catch(e) {}
 
-        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); try { localStorage.setItem('archers_v61_user', user); } catch(e){} refreshUI(); } }
+        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); try { localStorage.setItem('archers_v62_user', user); } catch(e){} refreshUI(); } }
         function saveScore(res) {
             let p = db.find(x => x.name === user);
             if(!p) { p = {name: user, pts: 0}; db.push(p); }
             if(res === 'w') p.pts += 3; if(res === 'd') p.pts += 1;
-            try { localStorage.setItem('archers_v61_db', JSON.stringify(db)); } catch(e){}
+            try { localStorage.setItem('archers_v62_db', JSON.stringify(db)); } catch(e){}
             refreshUI();
         }
         function refreshUI() {
@@ -143,18 +150,14 @@
             if(audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            
+            osc.connect(gain); gain.connect(audioCtx.destination);
             let now = audioCtx.currentTime;
             if(type === 'move') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now);
-                osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
                 gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
                 osc.start(now); osc.stop(now + 0.1);
             } else if(type === 'capture') {
-                osc.type = 'square'; osc.frequency.setValueAtTime(400, now);
-                osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
                 gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
                 osc.start(now); osc.stop(now + 0.15);
             } else if(type === 'check') {
@@ -162,8 +165,7 @@
                 gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
                 osc.start(now); osc.stop(now + 0.3);
             } else if(type === 'end') {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now);
-                osc.frequency.linearRampToValueAtTime(50, now + 0.6);
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now); osc.frequency.linearRampToValueAtTime(50, now + 0.6);
                 gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.6);
                 osc.start(now); osc.stop(now + 0.6);
             }
@@ -179,6 +181,9 @@
         let board = Array(80).fill(null), turn = 'w', sel = null, gameActive = false;
         let validMoves = [], caps = {w:[], b:[]};
         let moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
+        
+        let moveHistory = [];
+        let dragging = false; let dragOrigin = null; let pointerX = 0; let pointerY = 0;
 
         function idx(f, r) { return f * 8 + r; }
         function isW(p) { return p === p.toUpperCase(); }
@@ -187,6 +192,7 @@
         function initGame() {
             board = Array(80).fill(null); turn = 'w'; sel = null; validMoves = []; caps = {w:[], b:[]}; gameActive = true;
             moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
+            moveHistory = []; updateHistoryUI();
             const setup = ['A','R','N','B','Q','K','B','N','R','A'];
             for(let f=0; f<10; f++) { board[idx(f,0)]=setup[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=setup[f].toLowerCase(); }
             refreshUI(); updateStatus("Your Turn (White)"); draw();
@@ -194,11 +200,32 @@
 
         function concede() {
             if(!gameActive) return;
-            gameActive = false;
-            playSound('end');
+            gameActive = false; playSound('end');
             updateStatus("You Conceded - BLACK WINS!");
-            saveScore('l');
-            draw();
+            saveScore('l'); draw();
+        }
+
+        function getAlgebraic(s, t, p, captured, isCastle, isCheck, isMate) {
+            if (isCastle) return (Math.floor(t/8) === 7) ? "O-O" : "O-O-O";
+            let fS = files[Math.floor(s/8)];
+            let fT = files[Math.floor(t/8)], rT = (t%8)+1;
+            let pStr = (p.toUpperCase() === 'P') ? '' : p.toUpperCase();
+            if (p.toUpperCase() === 'P' && captured) pStr = fS.replace('+','').replace('-',''); 
+            let moveStr = pStr + (captured ? 'x' : '') + fT + rT;
+            if (isMate) moveStr += '#'; else if (isCheck) moveStr += '+';
+            return moveStr;
+        }
+
+        function updateHistoryUI() {
+            const histDiv = document.getElementById('move-history');
+            histDiv.innerHTML = moveHistory.map((m, i) => `
+                <div class="move-row">
+                    <div class="move-num">${i+1}.</div>
+                    <div class="move-w">${m.w}</div>
+                    <div class="move-b">${m.b}</div>
+                </div>
+            `).join('');
+            histDiv.scrollTop = histDiv.scrollHeight;
         }
 
         // --- 4. MOVEMENT & STABLE AI ---
@@ -304,15 +331,11 @@
             let diff = parseInt(document.getElementById('ai-diff').value);
             let legalMoves = getAllLegalMoves(board, false); 
             
-            if(legalMoves.length === 0) {
-                playSound('end');
-                return finalizeGame();
-            }
+            if(legalMoves.length === 0) return finalizeGame();
 
             for(let m of legalMoves) {
                 m.score = Math.random() * 0.5; 
                 if(m.captured) m.score += getVal(m.captured) * 10;
-                
                 if(diff >= 2) {
                     let o = board[m.t]; board[m.t] = m.piece; board[m.s] = null; 
                     let newWMap = getAttackMap(board, true);
@@ -320,12 +343,10 @@
                     if(newWMap[m.t]) m.score -= getVal(m.piece) * 8; 
                 }
                 if(diff >= 3) {
-                    let ef = Math.floor(m.t/8);
-                    m.score += (4 - Math.abs(ef - 4.5)); 
+                    let ef = Math.floor(m.t/8); m.score += (4 - Math.abs(ef - 4.5)); 
                     if(m.piece === 'p') m.score += 2; 
                 }
             }
-
             let bestMove = legalMoves[0];
             for(let m of legalMoves) if(m.score > bestMove.score) bestMove = m;
             processMove(bestMove.s, bestMove.t, bestMove.isCastle);
@@ -334,8 +355,9 @@
         // --- 5. GAME LOOP & RENDER ---
         function processMove(s, t, isCastle) {
             let p = board[s], tp = board[t];
-            if(tp) { isW(tp) ? caps.w.push(tp) : caps.b.push(tp); }
+            let isWTurn = (turn === 'w');
             
+            if(tp) { isWTurn ? caps.w.push(tp) : caps.b.push(tp); }
             board[t] = p; board[s] = null;
             
             if(isCastle) {
@@ -347,24 +369,26 @@
             if(s === idx(5,0)) moved.wK = true; if(s === idx(1,0)) moved.wR1 = true; if(s === idx(8,0)) moved.wR2 = true;
             if(s === idx(5,7)) moved.bK = true; if(s === idx(1,7)) moved.bR1 = true; if(s === idx(8,7)) moved.bR2 = true;
 
-            if(p === 'P' && t%8 === 7) board[t] = 'Q';
-            if(p === 'p' && t%8 === 0) board[t] = 'q';
+            if(p === 'P' && t%8 === 7) { board[t] = 'Q'; p = 'Q'; }
+            if(p === 'p' && t%8 === 0) { board[t] = 'q'; p = 'q'; }
 
             turn = (turn === 'w') ? 'b' : 'w';
-            sel = null; validMoves = []; 
+            sel = null; validMoves = []; dragging = false; 
 
-            let isWTurn = (turn === 'w');
-            let currentLegal = getAllLegalMoves(board, isWTurn);
-            
-            let kIdx = board.indexOf(isWTurn ? 'K' : 'k');
+            let currentLegal = getAllLegalMoves(board, !isWTurn);
+            let kIdx = board.indexOf(!isWTurn ? 'K' : 'k');
             let isCheck = false;
-            if(kIdx !== -1) isCheck = getAttackMap(board, !isWTurn)[kIdx];
+            if(kIdx !== -1) isCheck = getAttackMap(board, isWTurn)[kIdx];
+            let isMate = (currentLegal.length === 0 && isCheck);
+
+            // Record history
+            let note = getAlgebraic(s, t, p, tp, isCastle, isCheck, isMate);
+            if(isWTurn) moveHistory.push({ w: note, b: '' });
+            else moveHistory[moveHistory.length - 1].b = note;
+            updateHistoryUI();
 
             if(currentLegal.length === 0) { 
-                playSound('end');
-                finalizeGame(); 
-                draw();
-                return;
+                playSound('end'); finalizeGame(); draw(); return;
             }
 
             if(isCheck) playSound('check');
@@ -372,44 +396,22 @@
             else playSound('move');
 
             draw();
-
-            if(turn === 'b') { 
-                updateStatus(isCheck ? "CHECK! AI is Thinking..." : "AI is Thinking..."); 
-                setTimeout(executeAI, 50); 
-            } else { 
-                updateStatus(isCheck ? "CHECK! Your Turn (White)" : "Your Turn (White)"); 
-            }
+            if(turn === 'b') { updateStatus(isCheck ? "CHECK! AI is Thinking..." : "AI is Thinking..."); setTimeout(executeAI, 50); } 
+            else { updateStatus(isCheck ? "CHECK! Your Turn (White)" : "Your Turn (White)"); }
         }
 
         function finalizeGame() {
             gameActive = false;
             let inCheck = getAttackMap(board, turn !== 'w')[board.indexOf(turn === 'w' ? 'K' : 'k')];
             if(inCheck) {
-                let win = turn === 'b';
-                updateStatus(win ? "CHECKMATE - WHITE WINS!" : "CHECKMATE - BLACK WINS!");
-                saveScore(win ? 'w' : 'l');
-            } else {
-                updateStatus("STALEMATE - DRAW!");
-                saveScore('d');
-            }
+                let win = turn === 'b'; updateStatus(win ? "CHECKMATE - WHITE WINS!" : "CHECKMATE - BLACK WINS!"); saveScore(win ? 'w' : 'l');
+            } else { updateStatus("STALEMATE - DRAW!"); saveScore('d'); }
         }
 
         function updateStatus(msg) {
-            const s = document.getElementById('status');
-            s.textContent = msg;
-            
-            if(msg.includes("CHECKMATE") || msg.includes("Conceded")) {
-                s.className = "check-alert";
-            } else if(msg.includes("CHECK!")) {
-                s.className = "check-alert";
-            } else if(msg.includes("AI")) {
-                s.className = "ai-thinking";
-            } else {
-                s.className = "";
-            }
-
-            const btn = document.getElementById('btn-concede');
-            if(btn) btn.disabled = !gameActive || msg.includes("AI");
+            const s = document.getElementById('status'); s.textContent = msg;
+            s.className = (msg.includes("CHECK") || msg.includes("Conceded")) ? "check-alert" : (msg.includes("AI") ? "ai-thinking" : "");
+            const btn = document.getElementById('btn-concede'); if(btn) btn.disabled = !gameActive || msg.includes("AI");
         }
 
         function draw() {
@@ -426,51 +428,85 @@
                 for(let f=0; f<10; f++) {
                     let sq = idx(f, r);
                     ctx.fillStyle = (f+r)%2 === 0 ? '#f0d9b5' : '#b58863';
-                    
-                    if(isCheckRender && sq === currentKIdx) {
-                        ctx.fillStyle = '#ff6b6b'; // Red highlight for check
-                    }
-
+                    if(isCheckRender && sq === currentKIdx) ctx.fillStyle = '#ff6b6b'; 
                     ctx.fillRect(30 + f*60, (7-r)*60 + 10, 60, 60);
                     
                     if(validMoves.some(m => m.t === sq)) { ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.beginPath(); ctx.arc(30+f*60+30, (7-r)*60+10+30, 9, 0, 7); ctx.fill(); }
 
                     let p = board[sq];
-                    if(p) {
+                    if(p && (!dragging || sq !== dragOrigin)) {
                         ctx.textAlign = 'center'; ctx.fillStyle = isW(p) ? '#fff' : '#000';
                         ctx.font = p.toUpperCase() === 'A' ? '36px serif' : '42px serif';
                         ctx.fillText(symbols[p], 30 + f*60 + 30, (7-r)*60 + 10 + 44);
                     }
                 }
             }
+
+            if (dragging) {
+                let dp = board[dragOrigin];
+                ctx.textAlign = 'center'; ctx.fillStyle = isW(dp) ? '#fff' : '#000';
+                ctx.font = dp.toUpperCase() === 'A' ? '36px serif' : '42px serif';
+                ctx.fillText(symbols[dp], pointerX, pointerY + 14);
+            }
+
             document.getElementById('caps-white').textContent = caps.w.map(x => symbols[x] || '').join('');
             document.getElementById('caps-black').textContent = caps.b.map(x => symbols[x] || '').join('');
         }
 
+        // --- 6. DRAG AND DROP INPUT ---
         canvas.addEventListener('pointerdown', (e) => {
             if(audioCtx.state === 'suspended') audioCtx.resume();
             if(turn === 'b' || !gameActive) return;
             
-            const r = canvas.getBoundingClientRect();
-            const f = Math.floor(((e.clientX - r.left) * (660/r.width) - 30) / 60);
-            const rIdx = 7 - Math.floor(((e.clientY - r.top) * (520/r.height) - 10) / 60);
+            const rRect = canvas.getBoundingClientRect();
+            const f = Math.floor(((e.clientX - rRect.left) * (660/rRect.width) - 30) / 60);
+            const rIdx = 7 - Math.floor(((e.clientY - rRect.top) * (520/rRect.height) - 10) / 60);
             const sq = idx(f, rIdx);
             
             if(f < 0 || f > 9 || rIdx < 0 || rIdx > 7) return;
+            let p = board[sq];
 
-            if(sel === null) {
-                let p = board[sq];
-                if(p && isW(p)) { sel = sq; validMoves = getAllLegalMoves(board, true).filter(m => m.s === sq); }
-            } else {
+            // Handle Tap-to-move for users who don't want to drag
+            if(sel !== null && validMoves.some(m => m.t === sq)) {
                 let move = validMoves.find(m => m.t === sq);
-                if(move) processMove(sel, sq, move.isCastle);
-                else { sel = null; validMoves = []; }
+                processMove(sel, sq, move.isCastle);
+                return;
             }
+
+            if(p && isW(p)) { 
+                sel = sq; dragging = true; dragOrigin = sq;
+                pointerX = (e.clientX - rRect.left) * (660/rRect.width); pointerY = (e.clientY - rRect.top) * (520/rRect.height);
+                validMoves = getAllLegalMoves(board, true).filter(m => m.s === sq); 
+                canvas.setPointerCapture(e.pointerId);
+                draw();
+            } else {
+                sel = null; validMoves = []; draw();
+            }
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            if(!dragging) return;
+            const rRect = canvas.getBoundingClientRect();
+            pointerX = (e.clientX - rRect.left) * (660/rRect.width); pointerY = (e.clientY - rRect.top) * (520/rRect.height);
             draw();
         });
 
+        canvas.addEventListener('pointerup', (e) => {
+            if(!dragging) return;
+            dragging = false; canvas.releasePointerCapture(e.pointerId);
+            
+            const f = Math.floor((pointerX - 30) / 60);
+            const rIdx = 7 - Math.floor((pointerY - 10) / 60);
+            const dropSq = idx(f, rIdx);
+            
+            if (dropSq !== dragOrigin) {
+                let move = validMoves.find(m => m.t === dropSq);
+                if(move) { processMove(dragOrigin, dropSq, move.isCastle); } 
+                else { sel = null; validMoves = []; draw(); }
+            } else { draw(); } // Leave selected if dropped in place
+        });
+
         initGame();
-        refreshUI();
     </script>
 </body>
 </html>
