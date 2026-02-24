@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v6.0</title>
+    <title>Archers Chess v6.1</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
@@ -27,7 +27,9 @@
         #board-center { display: flex; flex-direction: column; align-items: center; }
         #status { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; transition: all 0.2s; }
         .ai-thinking { color: var(--accent) !important; animation: pulse 1s infinite; }
+        .check-alert { color: #ff0000 !important; animation: shake 0.5s; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
         
         canvas { border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; cursor: pointer; touch-action: none; }
         
@@ -36,8 +38,9 @@
         .rules-overlay h2 { text-align: center; margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
         
         select, button { width: 100%; padding: 8px; font-size: 0.95rem; font-family: inherit; margin-top: 5px; cursor: pointer; border-radius: 4px; border: 1px solid var(--primary); }
-        button { background: var(--primary); color: white; font-weight: bold; border: none; padding: 10px; }
+        button { background: var(--primary); color: white; font-weight: bold; border: none; padding: 10px; transition: background 0.2s; }
         button:hover { background: var(--accent); }
+        button:disabled { background: #ccc !important; color: #666; cursor: not-allowed; border-color: #aaa; }
 
         @media (max-width: 1000px) { .game-layout { display: flex; flex-direction: column; align-items: center; } .side-panel { width: 95%; } }
     </style>
@@ -63,8 +66,13 @@
                 <option value="2" selected>Level 2 (Warrior)</option>
                 <option value="3">Level 3 (Master)</option>
             </select>
+            
+            <div style="display: flex; gap: 10px;">
+                <button onclick="initGame()">Restart</button>
+                <button id="btn-concede" onclick="concede()" style="background: var(--accent);">Concede</button>
+            </div>
 
-            <h3>🏆 Top 10 Hall</h3>
+            <h3 style="margin-top: 20px;">🏆 Top 10 Hall</h3>
             <table class="leaderboard-table" id="hall-of-fame"><tbody></tbody></table>
         </div>
 
@@ -80,7 +88,7 @@
             <div id="caps-white" style="font-size:24px; min-height:45px; display:flex; flex-wrap:wrap;"></div>
             
             <h3 style="margin-top:20px;">Engine Status</h3>
-            <p style="font-size:0.85em; color:#228b22; font-weight:bold;">✓ Map Architecture<br>✓ Rules Loaded<br>✓ Stable</p>
+            <p style="font-size:0.85em; color:#228b22; font-weight:bold;">✓ Map Architecture<br>✓ Rules Loaded<br>✓ Audio & Visuals Active</p>
         </div>
 
         <div class="rules-overlay">
@@ -111,14 +119,14 @@
         // --- 1. USER & DB SYSTEM ---
         let db = [];
         let user = "Guest";
-        try { db = JSON.parse(localStorage.getItem('archers_v6_db')) || []; user = localStorage.getItem('archers_v6_user') || "Guest"; } catch(e) {}
+        try { db = JSON.parse(localStorage.getItem('archers_v61_db')) || []; user = localStorage.getItem('archers_v61_user') || "Guest"; } catch(e) {}
 
-        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); try { localStorage.setItem('archers_v6_user', user); } catch(e){} refreshUI(); } }
+        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); try { localStorage.setItem('archers_v61_user', user); } catch(e){} refreshUI(); } }
         function saveScore(res) {
             let p = db.find(x => x.name === user);
             if(!p) { p = {name: user, pts: 0}; db.push(p); }
             if(res === 'w') p.pts += 3; if(res === 'd') p.pts += 1;
-            try { localStorage.setItem('archers_v6_db', JSON.stringify(db)); } catch(e){}
+            try { localStorage.setItem('archers_v61_db', JSON.stringify(db)); } catch(e){}
             refreshUI();
         }
         function refreshUI() {
@@ -129,7 +137,39 @@
             document.getElementById('hall-of-fame').innerHTML = sorted.map((s,i) => `<tr><td>${i+1}. ${s.name}</td><td style="text-align:right"><b>${s.pts}</b></td></tr>`).join('');
         }
 
-        // --- 2. BOARD & STATE ---
+        // --- 2. AUDIO SYNTHESIZER ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            let now = audioCtx.currentTime;
+            if(type === 'move') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if(type === 'capture') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if(type === 'check') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if(type === 'end') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(50, now + 0.6);
+                gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.6);
+                osc.start(now); osc.stop(now + 0.6);
+            }
+        }
+
+        // --- 3. BOARD & STATE ---
         const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
         const archerSym = "\u{1F3F9}\u{FE0E}"; 
         const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A': archerSym, 'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a': archerSym };
@@ -149,10 +189,19 @@
             moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
             const setup = ['A','R','N','B','Q','K','B','N','R','A'];
             for(let f=0; f<10; f++) { board[idx(f,0)]=setup[f]; board[idx(f,1)]='P'; board[idx(f,6)]='p'; board[idx(f,7)]=setup[f].toLowerCase(); }
-            refreshUI(); draw(); updateStatus("Your Turn (White)");
+            refreshUI(); updateStatus("Your Turn (White)"); draw();
         }
 
-        // --- 3. MOVEMENT & STABLE AI ---
+        function concede() {
+            if(!gameActive) return;
+            gameActive = false;
+            playSound('end');
+            updateStatus("You Conceded - BLACK WINS!");
+            saveScore('l');
+            draw();
+        }
+
+        // --- 4. MOVEMENT & STABLE AI ---
         function getPseudoMoves(b, i, attacksOnly = false) {
             let p = b[i]; if (!p) return [];
             let isWhite = isW(p); let type = p.toUpperCase();
@@ -182,7 +231,6 @@
             else if(type === 'N') { for(let [df,dr] of [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]]) add(f+df, r+dr); } 
             else if(type === 'K') {
                 for(let [df,dr] of [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]) add(f+df, r+dr);
-                // Castling (Pseudo)
                 if(!attacksOnly) {
                     if(isWhite && !moved.wK) {
                         if(!moved.wR1 && !b[idx(2,0)] && !b[idx(3,0)] && !b[idx(4,0)]) mvs.push(idx(3,0));
@@ -232,21 +280,19 @@
                         let isCastle = (p.toUpperCase() === 'K' && Math.abs(Math.floor(t/8) - Math.floor(i/8)) === 2);
                         let eMap = getAttackMap(testBoard, !isWhite);
                         
-                        // Castling safety checks
                         if(isCastle) {
-                            if(eMap[i] || eMap[t]) continue; // Can't castle out of/into check
+                            if(eMap[i] || eMap[t]) continue; 
                             let passF = Math.floor(i/8) + (Math.floor(t/8) > Math.floor(i/8) ? 1 : -1);
-                            if(eMap[idx(passF, i%8)]) continue; // Can't pass through check
+                            if(eMap[idx(passF, i%8)]) continue; 
                         }
 
-                        // Simulate Move
                         let o = testBoard[t]; testBoard[t] = p; testBoard[i] = null;
                         let kIdx = testBoard.indexOf(isWhite ? 'K' : 'k');
-                        let postMap = getAttackMap(testBoard, !isWhite); // Map after moving
+                        let postMap = getAttackMap(testBoard, !isWhite); 
                         
                         if(kIdx !== -1 && !postMap[kIdx]) moves.push({ s: i, t: t, piece: p, captured: o, isCastle: isCastle });
                         
-                        testBoard[i] = p; testBoard[t] = o; // Undo
+                        testBoard[i] = p; testBoard[t] = o; 
                     }
                 }
             }
@@ -258,7 +304,10 @@
             let diff = parseInt(document.getElementById('ai-diff').value);
             let legalMoves = getAllLegalMoves(board, false); 
             
-            if(legalMoves.length === 0) return finalizeGame();
+            if(legalMoves.length === 0) {
+                playSound('end');
+                return finalizeGame();
+            }
 
             for(let m of legalMoves) {
                 m.score = Math.random() * 0.5; 
@@ -282,7 +331,7 @@
             processMove(bestMove.s, bestMove.t, bestMove.isCastle);
         }
 
-        // --- 4. GAME LOOP & RENDER ---
+        // --- 5. GAME LOOP & RENDER ---
         function processMove(s, t, isCastle) {
             let p = board[s], tp = board[t];
             if(tp) { isW(tp) ? caps.w.push(tp) : caps.b.push(tp); }
@@ -302,13 +351,34 @@
             if(p === 'p' && t%8 === 0) board[t] = 'q';
 
             turn = (turn === 'w') ? 'b' : 'w';
-            sel = null; validMoves = []; draw();
+            sel = null; validMoves = []; 
 
-            let currentLegal = getAllLegalMoves(board, turn === 'w');
-            if(currentLegal.length === 0) return finalizeGame();
+            let isWTurn = (turn === 'w');
+            let currentLegal = getAllLegalMoves(board, isWTurn);
+            
+            let kIdx = board.indexOf(isWTurn ? 'K' : 'k');
+            let isCheck = false;
+            if(kIdx !== -1) isCheck = getAttackMap(board, !isWTurn)[kIdx];
 
-            if(turn === 'b') { updateStatus("AI is Thinking..."); setTimeout(executeAI, 50); } 
-            else { updateStatus("Your Turn (White)"); }
+            if(currentLegal.length === 0) { 
+                playSound('end');
+                finalizeGame(); 
+                draw();
+                return;
+            }
+
+            if(isCheck) playSound('check');
+            else if(tp) playSound('capture');
+            else playSound('move');
+
+            draw();
+
+            if(turn === 'b') { 
+                updateStatus(isCheck ? "CHECK! AI is Thinking..." : "AI is Thinking..."); 
+                setTimeout(executeAI, 50); 
+            } else { 
+                updateStatus(isCheck ? "CHECK! Your Turn (White)" : "Your Turn (White)"); 
+            }
         }
 
         function finalizeGame() {
@@ -327,7 +397,19 @@
         function updateStatus(msg) {
             const s = document.getElementById('status');
             s.textContent = msg;
-            s.className = msg.includes("AI") ? "ai-thinking" : "";
+            
+            if(msg.includes("CHECKMATE") || msg.includes("Conceded")) {
+                s.className = "check-alert";
+            } else if(msg.includes("CHECK!")) {
+                s.className = "check-alert";
+            } else if(msg.includes("AI")) {
+                s.className = "ai-thinking";
+            } else {
+                s.className = "";
+            }
+
+            const btn = document.getElementById('btn-concede');
+            if(btn) btn.disabled = !gameActive || msg.includes("AI");
         }
 
         function draw() {
@@ -336,12 +418,21 @@
             for(let f=0; f<10; f++) ctx.fillText(files[f], 30 + f*60 + 20, 510);
             for(let r=0; r<8; r++) ctx.fillText(8-r, 10, 20 + r*60 + 35);
 
+            let currentKIdx = board.indexOf(turn === 'w' ? 'K' : 'k');
+            let isCheckRender = false;
+            if (currentKIdx !== -1) isCheckRender = getAttackMap(board, turn !== 'w')[currentKIdx];
+
             for(let r=7; r>=0; r--) {
                 for(let f=0; f<10; f++) {
+                    let sq = idx(f, r);
                     ctx.fillStyle = (f+r)%2 === 0 ? '#f0d9b5' : '#b58863';
+                    
+                    if(isCheckRender && sq === currentKIdx) {
+                        ctx.fillStyle = '#ff6b6b'; // Red highlight for check
+                    }
+
                     ctx.fillRect(30 + f*60, (7-r)*60 + 10, 60, 60);
                     
-                    let sq = idx(f, r);
                     if(validMoves.some(m => m.t === sq)) { ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.beginPath(); ctx.arc(30+f*60+30, (7-r)*60+10+30, 9, 0, 7); ctx.fill(); }
 
                     let p = board[sq];
@@ -357,7 +448,9 @@
         }
 
         canvas.addEventListener('pointerdown', (e) => {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
             if(turn === 'b' || !gameActive) return;
+            
             const r = canvas.getBoundingClientRect();
             const f = Math.floor(((e.clientX - r.left) * (660/r.width) - 30) / 60);
             const rIdx = 7 - Math.floor(((e.clientY - r.top) * (520/r.height) - 10) / 60);
