@@ -3,91 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v4.0</title>
+    <title>Archers Chess - Clean Slate</title>
     <style>
-        :root {
-            --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
-            --panel-bg: #fffcf5;
-        }
-        body { font-family: 'Georgia', serif; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        
-        header { text-align: center; margin-bottom: 15px; }
-        h1 { color: var(--primary); margin: 0; font-size: 2.2em; text-transform: uppercase; letter-spacing: 3px; border-bottom: 2px solid var(--primary); display: inline-block; }
-        
-        .game-layout { display: grid; grid-template-columns: 260px 660px 260px; gap: 20px; max-width: 1250px; width: 100%; }
-
-        .side-panel { background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); height: fit-content; }
-        .side-panel h3 { margin: 0 0 10px 0; font-size: 1.1em; border-bottom: 1px solid var(--primary); text-transform: uppercase; }
-        
-        .user-box { background: #efe6d5; padding: 12px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #dcd0b9; }
-        
-        #board-center { display: flex; flex-direction: column; align-items: center; }
-        #status { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); height: 1.5rem; }
-        
-        canvas { border: 10px solid var(--primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background: #deb887; cursor: pointer; touch-action: none; }
-        canvas.locked { cursor: wait; pointer-events: none; opacity: 0.9; }
-
-        .difficulty-selector { margin-top: 15px; width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--primary); font-family: 'Georgia', serif; background: white; font-weight: bold; }
-        
-        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
-        button:hover { background: var(--accent); }
-
-        @media (max-width: 1000px) { .game-layout { display: flex; flex-direction: column; align-items: center; } .side-panel { width: 95%; } }
+        body { font-family: 'Georgia', serif; background: #edeadf; color: #2c1e12; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        h1 { color: #5d4037; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 2px; }
+        .controls { background: white; padding: 15px; border-radius: 8px; border: 2px solid #5d4037; margin-bottom: 20px; text-align: center; }
+        select, button { padding: 8px; font-size: 1rem; font-family: inherit; margin: 5px; cursor: pointer; }
+        button { background: #5d4037; color: white; border: none; font-weight: bold; border-radius: 4px; }
+        #status { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; color: #8b0000; height: 25px; }
+        canvas { border: 10px solid #5d4037; border-radius: 4px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); background: #deb887; touch-action: none; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>Archers Chess</h1>
-        <div style="font-style: italic; color: #795548; margin-top: 5px;">Clean-Slate Engine • v4.0</div>
-    </header>
-
-    <div class="game-layout">
-        <div class="side-panel">
-            <div class="user-box">
-                <div id="u-name" style="font-weight:bold;">Player 1</div>
-                <div id="u-pts" style="font-size:0.9em; color:#795548;">Score tracks coming soon</div>
-            </div>
-            <h3>AI Settings</h3>
-            <label for="difficulty" style="font-size: 0.9em;">Select Opponent Level:</label>
-            <select id="difficulty" class="difficulty-selector">
-                <option value="1">Easy (Random Moves)</option>
-                <option value="2" selected>Medium (Aggressive)</option>
-                <option value="3">Hard (Tactical Lookahead)</option>
-            </select>
-            <button onclick="init()">Restart Game</button>
-        </div>
-
-        <div id="board-center">
-            <div id="status">White to Move</div>
-            <canvas id="board" width="660" height="520"></canvas>
-        </div>
-
-        <div class="side-panel">
-            <h3>Captured Pieces</h3>
-            <div id="caps-black" style="font-size:24px; min-height:45px; display:flex; flex-wrap:wrap;"></div>
-            <hr style="border:0.5px solid #ddd; margin:10px 0;">
-            <div id="caps-white" style="font-size:24px; min-height:45px; display:flex; flex-wrap:wrap;"></div>
-            
-            <h3 style="margin-top:20px;">Engine Status</h3>
-            <p style="font-size:0.85em; color:#228b22; font-weight:bold;">✓ Failsafe Bounds Active</p>
-        </div>
+    <h1>Archers Chess</h1>
+    
+    <div class="controls">
+        <label for="ai-diff"><strong>AI Opponent Level:</strong></label>
+        <select id="ai-diff">
+            <option value="1">Level 1 - Novice (Random & Captures)</option>
+            <option value="2" selected>Level 2 - Warrior (Dodges Attacks)</option>
+            <option value="3">Level 3 - Master (Aggressive Tactics)</option>
+        </select>
+        <button onclick="initGame()">Restart Game</button>
     </div>
 
+    <div id="status">Your Turn (White)</div>
+    <canvas id="board" width="660" height="520"></canvas>
+
     <script>
-        const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const files = ["-A","A","B","C","D","E","F","G","H","H+"];
         const archerSym = "\u{1F3F9}\u{FE0E}"; 
         const symbols = { 'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙','A': archerSym, 'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟','a': archerSym };
-        const files = ["-A","A","B","C","D","E","F","G","H","H+"];
-        
-        let board = [], turn = 'w', sel = null, shadows = [], caps = {w:[], b:[]}, over = false, gameLocked = false;
-        let moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
+        const vals = { 'p':1, 'n':3, 'b':3, 'a':4, 'r':5, 'q':9, 'k':100 };
+
+        let board = Array(80).fill(null);
+        let turn = 'w';
+        let sel = null;
+        let validMoves = [];
+        let gameActive = true;
 
         function idx(f, r) { return f * 8 + r; }
-        
-        function init() {
-            board = new Array(80).fill(null); turn = 'w'; sel = null; shadows = []; caps = {w:[], b:[]}; over = false; gameLocked = false;
-            moved = { wK:false, wR1:false, wR2:false, bK:false, bR1:false, bR2:false };
+        function getVal(p) { return p ? (vals[p.toLowerCase()] || 0) : 0; }
+
+        function initGame() {
+            board = Array(80).fill(null);
+            turn = 'w'; sel = null; validMoves = []; gameActive = true;
+            
             const setup = ['A','R','N','B','Q','K','B','N','R','A'];
             for(let f=0; f<10; f++) { 
                 board[idx(f,0)] = setup[f]; 
@@ -95,280 +59,211 @@
                 board[idx(f,6)] = 'p'; 
                 board[idx(f,7)] = setup[f].toLowerCase(); 
             }
+            updateStatus("Your Turn (White)");
             draw();
         }
 
-        // ==========================================
-        // V4 FAILSAFE MOVE GENERATOR (Zero while-loop crashes)
-        // ==========================================
-        function getPseudoLegalMoves(sq, b) {
-            let moves = [];
-            let p = b[sq];
-            if (!p) return moves;
-            
-            let f = Math.floor(sq/8), r = sq%8;
-            let isWhite = (p === p.toUpperCase());
+        // ====================================================
+        // CLEAN-SLATE MOVE GENERATOR (No infinite recursion)
+        // ====================================================
+        function getPseudoMoves(b, i, attacksOnly = false) {
+            let p = b[i]; if (!p) return [];
+            let isW = (p === p.toUpperCase());
             let type = p.toUpperCase();
-
-            function addTarget(ef, er) {
-                if (ef >= 0 && ef <= 9 && er >= 0 && er <= 7) {
-                    let t = idx(ef, er);
-                    let tp = b[t];
-                    if (!tp || (tp.toUpperCase() === tp) !== isWhite) {
-                        moves.push(t);
-                        return !tp; // Returns true if square was empty (so sliding can continue)
-                    }
-                }
-                return false;
+            let f = Math.floor(i/8), r = i%8;
+            let mvs = [];
+            
+            function add(ef, er) {
+                if(ef < 0 || ef > 9 || er < 0 || er > 7) return false;
+                let t = idx(ef, er);
+                let tp = b[t];
+                if (!tp) { mvs.push(t); return true; } // empty, keep sliding
+                if ((tp === tp.toUpperCase()) !== isW || attacksOnly) { mvs.push(t); } 
+                return false; // hit a piece, stop sliding
             }
 
-            if (type === 'P') {
-                let dir = isWhite ? 1 : -1;
-                let startRow = isWhite ? 1 : 6;
-                // Forward
-                if (r+dir >= 0 && r+dir <= 7 && !b[idx(f, r+dir)]) {
-                    moves.push(idx(f, r+dir));
-                    if (r === startRow && !b[idx(f, r+dir*2)]) moves.push(idx(f, r+dir*2));
+            if(type === 'P') {
+                let dir = isW ? 1 : -1;
+                // Forward (not attacks)
+                if(!attacksOnly) {
+                    if (r+dir >= 0 && r+dir <= 7 && !b[idx(f, r+dir)]) {
+                        mvs.push(idx(f, r+dir));
+                        // Double step
+                        if ((isW && r === 1 || !isW && r === 6) && !b[idx(f, r+dir*2)]) mvs.push(idx(f, r+dir*2));
+                    }
                 }
-                // Captures
-                for (let df of [-1, 1]) {
-                    if (f+df >= 0 && f+df <= 9 && r+dir >= 0 && r+dir <= 7) {
-                        let tp = b[idx(f+df, r+dir)];
-                        if (tp && (tp.toUpperCase() === tp) !== isWhite) moves.push(idx(f+df, r+dir));
+                // Diagonal captures
+                for(let df of [-1, 1]) {
+                    if(f+df >= 0 && f+df <= 9 && r+dir >= 0 && r+dir <= 7) {
+                        let t = idx(f+df, r+dir);
+                        if(attacksOnly) mvs.push(t);
+                        else {
+                            let tp = b[t];
+                            if(tp && (tp === tp.toUpperCase()) !== isW) mvs.push(t);
+                        }
                     }
                 }
             } 
-            else if (type === 'N') {
-                const jumps = [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]];
-                for (let [df, dr] of jumps) addTarget(f+df, r+dr);
-            }
-            else if (type === 'K') {
-                const steps = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
-                for (let [df, dr] of steps) addTarget(f+df, r+dr);
-                // Castling Rules
-                if (isWhite && !moved.wK) {
-                    if (!moved.wR1 && !b[idx(2,0)] && !b[idx(3,0)] && !b[idx(4,0)]) moves.push(idx(3,0));
-                    if (!moved.wR2 && !b[idx(6,0)] && !b[idx(7,0)]) moves.push(idx(7,0));
-                } else if (!isWhite && !moved.bK) {
-                    if (!moved.bR1 && !b[idx(2,7)] && !b[idx(3,7)] && !b[idx(4,7)]) moves.push(idx(3,7));
-                    if (!moved.bR2 && !b[idx(6,7)] && !b[idx(7,7)]) moves.push(idx(7,7));
-                }
-            }
-            else if (type === 'A') {
-                const dirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
-                for (let [ox, oy] of dirs) {
-                    // Straight lines are blocked by pieces
-                    if (ox === 0 || oy === 0) {
-                        let block1 = (f+ox >= 0 && f+ox <= 9 && r+oy >= 0 && r+oy <= 7) ? b[idx(f+ox, r+oy)] : true;
-                        let block2 = (f+ox*2 >= 0 && f+ox*2 <= 9 && r+oy*2 >= 0 && r+oy*2 <= 7) ? b[idx(f+ox*2, r+oy*2)] : true;
-                        if (block1 || block2) continue;
+            else if(type === 'N') {
+                for(let [df,dr] of [[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]]) add(f+df, r+dr);
+            } 
+            else if(type === 'K') {
+                for(let [df,dr] of [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]) add(f+df, r+dr);
+                // Note: Simplified castling removed for absolute stability
+            } 
+            else if(type === 'A') {
+                for(let [ox, oy] of [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]) {
+                    if(ox===0 || oy===0) { // Check blockers for straight lines
+                        let b1 = (f+ox>=0&&f+ox<=9&&r+oy>=0&&r+oy<=7) ? b[idx(f+ox, r+oy)] : true;
+                        let b2 = (f+ox*2>=0&&f+ox*2<=9&&r+oy*2>=0&&r+oy*2<=7) ? b[idx(f+ox*2, r+oy*2)] : true;
+                        if(b1 || b2) continue;
                     }
-                    let f3 = f + ox*3, r3 = r + oy*3;
-                    let returns = [[-ox-oy, -oy+ox], [-ox+oy, -oy-ox]];
-                    for (let [rx, ry] of returns) {
-                        addTarget(f3 + Math.sign(rx), r3 + Math.sign(ry));
-                    }
+                    let f3 = f+ox*3, r3 = r+oy*3;
+                    for(let [rx, ry] of [[-ox-oy, -oy+ox], [-ox+oy, -oy-ox]]) add(f3 + Math.sign(rx), r3 + Math.sign(ry));
                 }
-            }
-            else { 
-                // Sliding Pieces (R, B, Q)
+            } 
+            else { // R, B, Q
                 let dirs = [];
-                if (type === 'R' || type === 'Q') dirs.push([0,1],[0,-1],[1,0],[-1,0]);
-                if (type === 'B' || type === 'Q') dirs.push([1,1],[1,-1],[-1,1],[-1,-1]);
-                
-                for (let [df, dr] of dirs) {
-                    // Replaced wild 'while' loop with strict coordinate walker
-                    for (let step = 1; step < 10; step++) {
-                        let cf = f + df * step;
-                        let cr = r + dr * step;
-                        if (!addTarget(cf, cr)) break; // Stop sliding if we hit edge or piece
+                if(type==='R' || type==='Q') dirs.push([0,1],[0,-1],[1,0],[-1,0]);
+                if(type==='B' || type==='Q') dirs.push([1,1],[1,-1],[-1,1],[-1,-1]);
+                for(let [df,dr] of dirs) {
+                    for(let s=1; s<10; s++) { if(!add(f+df*s, r+dr*s)) break; }
+                }
+            }
+            return mvs;
+        }
+
+        function getAttackMap(testBoard, isWhite) {
+            let map = Array(80).fill(false);
+            for(let i=0; i<80; i++) {
+                let p = testBoard[i];
+                if(p && (p === p.toUpperCase()) === isWhite) {
+                    let attacks = getPseudoMoves(testBoard, i, true);
+                    for(let t of attacks) map[t] = true;
+                }
+            }
+            return map;
+        }
+
+        function getAllLegalMoves(testBoard, isWhite) {
+            let moves = [];
+            for(let i=0; i<80; i++) {
+                let p = testBoard[i];
+                if(p && (p === p.toUpperCase()) === isWhite) {
+                    let pseudo = getPseudoMoves(testBoard, i, false);
+                    for(let t of pseudo) {
+                        // Simulate Move
+                        let o = testBoard[t];
+                        testBoard[t] = p; testBoard[i] = null;
+                        
+                        let eMap = getAttackMap(testBoard, !isWhite);
+                        let kIdx = testBoard.indexOf(isWhite ? 'K' : 'k');
+                        
+                        // If King is not captured and not under attack
+                        if(kIdx !== -1 && !eMap[kIdx]) {
+                            moves.push({ s: i, t: t, piece: p, captured: o });
+                        }
+                        
+                        // Undo Simulation
+                        testBoard[i] = p; testBoard[t] = o;
                     }
                 }
             }
             return moves;
         }
 
-        function isAttacked(sq, testBoard, byWhite) {
-            for (let i = 0; i < 80; i++) {
-                let p = testBoard[i];
-                if (p && (p.toUpperCase() === p) === byWhite) {
-                    let moves = getPseudoLegalMoves(i, testBoard);
-                    if (moves.includes(sq)) return true;
-                }
-            }
-            return false;
-        }
-
-        function getLegalMoves(sq, b) {
-            let pseudo = getPseudoLegalMoves(sq, b);
-            let legal = [];
-            let p = b[sq];
-            let isWhite = (p === p.toUpperCase());
-
-            for (let t of pseudo) {
-                let o = b[t];
-                b[t] = p; b[sq] = null;
-                
-                let kIdx = b.indexOf(isWhite ? 'K' : 'k');
-                if (kIdx !== -1 && !isAttacked(kIdx, b, !isWhite)) {
-                    // Check Castling pass-through safety
-                    let f = Math.floor(sq/8), ef = Math.floor(t/8);
-                    if (p.toUpperCase() === 'K' && Math.abs(ef - f) === 2) {
-                        let passF = f + (ef > f ? 1 : -1);
-                        if (!isAttacked(idx(f, sq%8), b, !isWhite) && !isAttacked(idx(passF, sq%8), b, !isWhite)) {
-                            legal.push(t);
-                        }
-                    } else {
-                        legal.push(t);
-                    }
-                }
-                b[sq] = p; b[t] = o; // Undo
-            }
-            return legal;
-        }
-
-        // ==========================================
-        // V4 SCALABLE AI ENGINE
-        // ==========================================
-        function getPieceVal(p) {
-            if (!p) return 0;
-            return { 'k':10000,'q':90,'r':50,'a':40,'b':30,'n':30,'p':10 }[p.toLowerCase()] || 0;
-        }
-
-        function evaluateBoard(testBoard, perspective) {
-            let score = 0;
-            for (let i = 0; i < 80; i++) {
-                if (testBoard[i]) {
-                    let isW = testBoard[i] === testBoard[i].toUpperCase();
-                    score += (isW ? getPieceVal(testBoard[i]) : -getPieceVal(testBoard[i]));
-                }
-            }
-            return perspective === 'b' ? -score : score;
-        }
-
-        function aiTurn() {
-            let allMoves = [];
-            for (let i = 0; i < 80; i++) {
-                if (board[i] && board[i] === board[i].toLowerCase()) {
-                    let mvs = getLegalMoves(i, board);
-                    for (let t of mvs) allMoves.push({s: i, t: t});
-                }
-            }
-
-            if (allMoves.length === 0) return checkEnd();
-
-            let diff = parseInt(document.getElementById('difficulty').value);
-            let chosenMove = allMoves[Math.floor(Math.random() * allMoves.length)];
-
-            if (diff === 1) {
-                // EASY: Mostly random, slight chance to capture
-                for (let m of allMoves) {
-                    if (board[m.t] && Math.random() > 0.5) chosenMove = m;
-                }
-            } 
-            else if (diff >= 2) {
-                // MEDIUM/HARD: Score evaluation
-                let bestScore = -Infinity;
-
-                for (let m of allMoves) {
-                    let o = board[m.t];
-                    board[m.t] = board[m.s]; board[m.s] = null;
-                    
-                    let score = evaluateBoard(board, 'b');
-                    
-                    // Positional Bias: Encourage center play
-                    let ef = Math.floor(m.t/8);
-                    score += (3 - Math.abs(ef - 4.5)) * 0.1;
-
-                    // HARD: Tactical lookahead to prevent blunders
-                    if (diff === 3) {
-                        let wBestCapture = 0;
-                        for (let wi = 0; wi < 80; wi++) {
-                            if (board[wi] && board[wi] === board[wi].toUpperCase()) {
-                                let wMvs = getPseudoLegalMoves(wi, board);
-                                if (wMvs.includes(m.t)) wBestCapture = Math.max(wBestCapture, getPieceVal(board[m.t]));
-                            }
-                        }
-                        score -= wBestCapture * 1.5; // Heavy penalty for sacrificing a piece for nothing
-                    }
-
-                    score += Math.random() * 0.05; // Break ties dynamically
-                    board[m.s] = board[m.t]; board[m.t] = o;
-
-                    if (score > bestScore) {
-                        bestScore = score;
-                        chosenMove = m;
-                    }
-                }
-            }
-
-            exec(chosenMove.s, chosenMove.t);
-            gameLocked = false;
-        }
-
-        function exec(s, t) {
-            if (over) return;
-            let p = board[s], tp = board[t];
-            if (tp) (tp === tp.toUpperCase()) ? caps.w.push(tp) : caps.b.push(tp);
+        // ====================================================
+        // FLAT AI HEURISTIC (1 Ply, 0% Crash Rate)
+        // ====================================================
+        function executeAI() {
+            if(!gameActive) return;
+            let diff = parseInt(document.getElementById('ai-diff').value);
+            let legalMoves = getAllLegalMoves(board, false); // Black moves
             
-            // Execute Castling
-            if (p.toUpperCase() === 'K' && Math.abs(Math.floor(t/8) - Math.floor(s/8)) === 2) {
-                let row = (p === 'K') ? 0 : 7;
-                let ef = Math.floor(t/8);
-                if (ef === 3) { board[idx(4, row)] = board[idx(1, row)]; board[idx(1, row)] = null; } // Queenside
-                if (ef === 7) { board[idx(6, row)] = board[idx(8, row)]; board[idx(8, row)] = null; } // Kingside
+            if(legalMoves.length === 0) return finalizeGame();
+
+            for(let m of legalMoves) {
+                m.score = Math.random() * 0.5; // Baseline tiebreaker
+                
+                // LEVEL 1: Take pieces if available
+                if(m.captured) m.score += getVal(m.captured) * 10;
+                
+                if(diff >= 2) {
+                    // LEVEL 2: Avoid moving to squares where we will immediately die
+                    let wMap = getAttackMap(board, true);
+                    
+                    let o = board[m.t]; board[m.t] = m.piece; board[m.s] = null; // simulate
+                    let newWMap = getAttackMap(board, true);
+                    board[m.s] = m.piece; board[m.t] = o; // undo
+                    
+                    if(newWMap[m.t]) m.score -= getVal(m.piece) * 8; // Heavy penalty for hanging a piece
+                }
+
+                if(diff >= 3) {
+                    // LEVEL 3: Center control and Pawn pushing
+                    let ef = Math.floor(m.t/8);
+                    m.score += (4 - Math.abs(ef - 4.5)); // Center file bias
+                    if(m.piece === 'p') m.score += 2; // Bias toward advancing pawns
+                }
             }
 
-            // Update moved flags
-            if (s === idx(5,0)) moved.wK = true; if (s === idx(1,0)) moved.wR1 = true; if (s === idx(8,0)) moved.wR2 = true;
-            if (s === idx(5,7)) moved.bK = true; if (s === idx(1,7)) moved.bR1 = true; if (s === idx(8,7)) moved.bR2 = true;
+            // Pick the highest scoring move
+            let bestMove = legalMoves[0];
+            for(let m of legalMoves) {
+                if(m.score > bestMove.score) bestMove = m;
+            }
 
+            processMove(bestMove.s, bestMove.t);
+        }
+
+        // ====================================================
+        // GAME STATE
+        // ====================================================
+        function processMove(s, t) {
+            let p = board[s];
             board[t] = p; board[s] = null;
             
-            // Promotion
-            if (p === 'P' && t%8 === 7) board[t] = 'Q';
-            if (p === 'p' && t%8 === 0) board[t] = 'q';
-            
+            // Pawn Promotion
+            if(p === 'P' && t%8 === 7) board[t] = 'Q';
+            if(p === 'p' && t%8 === 0) board[t] = 'q';
+
             turn = (turn === 'w') ? 'b' : 'w';
+            sel = null; validMoves = [];
             draw();
 
-            if (!checkEnd()) {
-                if (turn === 'b') {
-                    gameLocked = true; 
-                    document.getElementById('status').textContent = "AI is Thinking...";
-                    setTimeout(aiTurn, 100); 
-                }
+            // Check if game ended
+            let currentLegal = getAllLegalMoves(board, turn === 'w');
+            if(currentLegal.length === 0) {
+                finalizeGame();
+                return;
+            }
+
+            if(turn === 'b') {
+                updateStatus("AI is Thinking...");
+                setTimeout(executeAI, 50); // Let UI breathe, then execute instantaneous AI
+            } else {
+                updateStatus("Your Turn (White)");
             }
         }
 
-        function checkEnd() {
-            let hasMoves = false;
-            let isWhiteTurn = (turn === 'w');
-            
-            for (let i = 0; i < 80; i++) {
-                let p = board[i];
-                if (p && (p === p.toUpperCase()) === isWhiteTurn) {
-                    if (getLegalMoves(i, board).length > 0) {
-                        hasMoves = true;
-                        break;
-                    }
-                }
+        function finalizeGame() {
+            gameActive = false;
+            let inCheck = getAttackMap(board, turn !== 'w')[board.indexOf(turn === 'w' ? 'K' : 'k')];
+            if(inCheck) {
+                updateStatus(turn === 'w' ? "CHECKMATE - BLACK WINS!" : "CHECKMATE - WHITE WINS!");
+            } else {
+                updateStatus("STALEMATE - DRAW!");
             }
-
-            if (!hasMoves) {
-                over = true;
-                let kIdx = board.indexOf(isWhiteTurn ? 'K' : 'k');
-                let inCheck = isAttacked(kIdx, board, !isWhiteTurn);
-                setTimeout(() => {
-                    alert(inCheck ? (isWhiteTurn ? "CHECKMATE - BLACK WINS!" : "CHECKMATE - WHITE WINS!") : "STALEMATE!");
-                }, 50);
-                return true;
-            }
-            return false;
         }
 
+        function updateStatus(msg) {
+            document.getElementById('status').textContent = msg;
+        }
+
+        // ====================================================
+        // RENDERING & INPUT
+        // ====================================================
         function draw() {
-            canvas.className = gameLocked ? "locked" : "";
             ctx.clearRect(0,0,660,520);
             ctx.fillStyle = "#2c1e12"; ctx.font = "bold 13px Georgia";
             for(let f=0; f<10; f++) ctx.fillText(files[f], 30 + f*60 + 20, 510);
@@ -376,48 +271,52 @@
 
             for(let r=7; r>=0; r--) {
                 for(let f=0; f<10; f++) {
-                    ctx.fillStyle = (f+r)%2===0 ? '#f0d9b5' : '#b58863';
+                    ctx.fillStyle = (f+r)%2 === 0 ? '#f0d9b5' : '#b58863';
                     ctx.fillRect(30 + f*60, (7-r)*60 + 10, 60, 60);
-                    if(shadows.includes(idx(f,r))) { ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.beginPath(); ctx.arc(30+f*60+30, (7-r)*60+10+30, 9, 0, 7); ctx.fill(); }
-                    let p = board[idx(f,r)];
+                    
+                    let sq = idx(f, r);
+                    if(validMoves.includes(sq)) {
+                        ctx.fillStyle = "rgba(0,0,0,0.15)";
+                        ctx.beginPath(); ctx.arc(30+f*60+30, (7-r)*60+10+30, 9, 0, 7); ctx.fill();
+                    }
+
+                    let p = board[sq];
                     if(p) {
-                        ctx.textAlign='center'; ctx.fillStyle = (p === p.toUpperCase()) ? '#fff' : '#000';
-                        ctx.font = p.toUpperCase()==='A' ? '36px serif' : '42px serif';
+                        ctx.textAlign = 'center'; 
+                        ctx.fillStyle = (p === p.toUpperCase()) ? '#fff' : '#000';
+                        ctx.font = p.toUpperCase() === 'A' ? '36px serif' : '42px serif';
                         ctx.fillText(symbols[p], 30 + f*60 + 30, (7-r)*60 + 10 + 44);
                     }
                 }
             }
-            document.getElementById('caps-white').textContent = caps.w.map(x => symbols[x] || '').join('');
-            document.getElementById('caps-black').textContent = caps.b.map(x => symbols[x] || '').join('');
-            
-            if (!gameLocked) document.getElementById('status').textContent = turn === 'w' ? "Your Turn (White)" : "AI Turn (Black)";
         }
 
-        function input(e) {
-            if(turn === 'b' || gameLocked || over) return;
-            const rRect = canvas.getBoundingClientRect();
-            const cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
-            const f = Math.floor(((cx-rRect.left)*(660/rRect.width)-30)/60), rIdx = 7-Math.floor(((cy-rRect.top)*(520/rRect.height)-10)/60);
-            const s = idx(f,rIdx);
+        canvas.addEventListener('pointerdown', (e) => {
+            if(turn === 'b' || !gameActive) return;
+            const rect = canvas.getBoundingClientRect();
+            const f = Math.floor(((e.clientX - rect.left) * (660/rect.width) - 30) / 60);
+            const rIdx = 7 - Math.floor(((e.clientY - rect.top) * (520/rect.height) - 10) / 60);
+            const sq = idx(f, rIdx);
             
-            if(f<0 || f>9 || rIdx<0 || rIdx>7) return;
+            if(f < 0 || f > 9 || rIdx < 0 || rIdx > 7) return;
 
-            if(sel === null) { 
-                let p = board[s];
-                if(p && p === p.toUpperCase()) { sel = s; shadows = getLegalMoves(s, board); } 
-            } else { 
-                if(shadows.includes(s)) {
-                    exec(sel, s); 
+            if(sel === null) {
+                let p = board[sq];
+                if(p && p === p.toUpperCase()) {
+                    sel = sq;
+                    validMoves = getAllLegalMoves(board, true).filter(m => m.s === sq).map(m => m.t);
                 }
-                sel = null; shadows = []; 
-                draw();
+            } else {
+                if(validMoves.includes(sq)) {
+                    processMove(sel, sq);
+                } else {
+                    sel = null; validMoves = [];
+                }
             }
             draw();
-        }
+        });
 
-        canvas.addEventListener('touchstart', e => { e.preventDefault(); input(e); }, {passive:false});
-        canvas.addEventListener('mousedown', input);
-        init();
+        initGame();
     </script>
 </body>
 </html>
