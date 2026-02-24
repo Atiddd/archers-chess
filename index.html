@@ -3,18 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archers Chess v1.1 - Professional Edition</title>
+    <title>Archers Chess v1.2 - Profile & Leaderboard</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
             --tile-light: #f0d9b5; --tile-dark: #b58863; --panel-bg: #fffcf5;
         }
         body { font-family: 'Segoe UI', serif; text-align: center; background: var(--bg); color: #2c1e12; margin: 0; padding: 20px; }
-        h1 { color: var(--primary); margin: 0 0 5px 0; font-size: 2.2em; text-transform: uppercase; letter-spacing: 2px; }
-        .author-tag { font-style: italic; color: #795548; margin-bottom: 15px; font-size: 0.9em; }
+        h1 { color: var(--primary); margin: 0; font-size: 2.2em; text-transform: uppercase; letter-spacing: 2px; }
+        .author-tag { font-style: italic; color: #795548; margin-bottom: 10px; font-size: 0.9em; }
         
-        .game-container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
+        /* Login Overlay */
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; z-index: 200;
+        }
+        .login-box { background: white; padding: 40px; border: 4px solid var(--primary); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .login-box input { padding: 10px; font-size: 1.1em; border: 2px solid #ddd; border-radius: 4px; margin-bottom: 15px; width: 250px; outline: none; }
         
+        /* Layout */
+        .game-container { display: flex; justify-content: center; align-items: flex-start; gap: 15px; flex-wrap: wrap; margin-top: 5px; }
         #board-wrapper { position: relative; }
         canvas { border: 8px solid var(--primary); cursor: pointer; background: #deb887; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border-radius: 4px; }
         
@@ -24,41 +33,52 @@
             flex-direction: column; justify-content: center; align-items: center;
             border-radius: 4px; z-index: 100;
         }
-        #game-over-overlay h2 { font-size: 3em; margin: 0; color: #ffeb3b; text-shadow: 2px 2px 4px #000; }
 
-        .side-panel { width: 170px; background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 15px; text-align: left; }
-        .capture-group { height: 160px; font-size: 26px; line-height: 1.2; letter-spacing: 2px; }
+        /* Panels */
+        .side-panel { width: 180px; background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 8px; padding: 12px; text-align: left; }
+        .side-panel h3 { margin-top: 0; font-size: 1em; border-bottom: 2px solid var(--primary); padding-bottom: 5px; color: var(--primary); text-transform: uppercase; }
+        .stats-list { list-style: none; padding: 0; margin: 10px 0; font-size: 0.9em; }
+        .stats-list li { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #eee; }
+        .capture-group { height: 120px; font-size: 24px; line-height: 1.2; }
         
-        #status { font-size: 22px; font-weight: bold; margin: 15px; height: 32px; color: var(--primary); }
+        #status { font-size: 22px; font-weight: bold; margin: 10px; height: 32px; color: var(--primary); }
         .check-alert { color: var(--accent); animation: blink 0.8s infinite; }
         @keyframes blink { 50% { opacity: 0; } }
 
         button { font-size: 15px; padding: 10px 25px; border-radius: 4px; cursor: pointer; border: none; background: var(--primary); color: white; font-weight: bold; }
         button:hover { background: var(--accent); }
 
-        .manual-container { max-width: 850px; margin: 40px auto; text-align: left; }
-        details { background: #fff; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; }
-        summary { padding: 15px 20px; font-size: 18px; font-weight: bold; cursor: pointer; background: var(--primary); color: white; }
-        .manual-content { padding: 25px; line-height: 1.6; }
-        .notation-key { background: #fbe9e7; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-family: monospace; }
+        .manual-container { max-width: 850px; margin: 20px auto; text-align: left; }
+        details { background: #fff; border: 2px solid var(--primary); border-radius: 8px; }
+        summary { padding: 12px 20px; font-size: 16px; font-weight: bold; cursor: pointer; background: var(--primary); color: white; }
     </style>
 </head>
 <body>
 
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2 style="color: var(--primary); margin-top: 0;">Welcome, Grandmaster</h2>
+            <p>Enter your username to begin your career.</p>
+            <input type="text" id="username-input" placeholder="Username..." maxlength="12"><br>
+            <button onclick="saveUser()">Enter Arena</button>
+        </div>
+    </div>
+
     <h1>🏹 Archers Chess</h1>
     <div class="author-tag">Official Rules v1.0 • Created by John Patrick Read</div>
-
-    <div class="controls">
-        <button onclick="init()">Reset Field of Play</button>
-        <p style="font-size: 0.8em; margin-top: 5px;">Audio Enabled: 🔊</p>
-    </div>
 
     <div id="status">Your Turn</div>
 
     <div class="game-container">
         <div class="side-panel">
-            <h3>AI Captures</h3>
-            <div id="white-captures" class="capture-group"></div>
+            <h3>Player Profile</h3>
+            <div style="font-weight: bold; color: var(--accent); margin-bottom: 5px;" id="display-name">Player</div>
+            <ul class="stats-list">
+                <li><span>Wins:</span> <span id="stat-wins">0</span></li>
+                <li><span>Losses:</span> <span id="stat-losses">0</span></li>
+                <li><span>Stalemates:</span> <span id="stat-draws">0</span></li>
+            </ul>
+            <button style="padding: 5px 10px; font-size: 11px;" onclick="resetStats()">Reset Stats</button>
         </div>
 
         <div id="board-wrapper">
@@ -71,26 +91,70 @@
         </div>
 
         <div class="side-panel">
-            <h3>Your Trophies</h3>
+            <h3>Captured Pieces</h3>
             <div id="black-captures" class="capture-group"></div>
+            <hr>
+            <div id="white-captures" class="capture-group"></div>
         </div>
     </div>
 
     <div class="manual-container">
         <details>
             <summary>📜 OFFICIAL RULES & MOVEMENT APPENDICES</summary>
-            <div class="manual-content">
-                <h4>1. The Archer Piece ($A$)</h4>
-                <p>Movement Phases: <strong>Outward ($O$)</strong> 3 squares; <strong>Return ($F$)</strong> 1 square diagonal offset. 
-                The King cannot be captured; the game ends only by Checkmate or Stalemate.</p>
-                <h4>2. Notation & Layout</h4>
-                <p>Files: <span class="notation-key">–A, A, B, C, D, E, F, G, H, H+</span>. AI plays at "Normal" difficulty.</p>
+            <div style="padding: 20px; line-height: 1.5;">
+                <h4>The Archer ($A$)</h4>
+                <p>Move: 3 squares outward, 1 square diagonal return. Values pieces at approx 4 points. King cannot be captured.</p>
             </div>
         </details>
     </div>
 
     <script>
-        // --- Audio Context for Game Sounds ---
+        // --- Leaderboard & User Logic ---
+        let userData = { name: "Player", wins: 0, losses: 0, draws: 0 };
+
+        function loadUser() {
+            const saved = localStorage.getItem('archersChess_user');
+            if (saved) {
+                userData = JSON.parse(saved);
+                document.getElementById('login-overlay').style.display = 'none';
+                updateProfileUI();
+            }
+        }
+
+        function saveUser() {
+            const name = document.getElementById('username-input').value.trim();
+            if (name === "") return alert("Please enter a username.");
+            userData.name = name;
+            localStorage.setItem('archersChess_user', JSON.stringify(userData));
+            document.getElementById('login-overlay').style.display = 'none';
+            updateProfileUI();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function updateProfileUI() {
+            document.getElementById('display-name').textContent = userData.name;
+            document.getElementById('stat-wins').textContent = userData.wins;
+            document.getElementById('stat-losses').textContent = userData.losses;
+            document.getElementById('stat-draws').textContent = userData.draws;
+        }
+
+        function recordResult(result) {
+            if (result === 'win') userData.wins++;
+            else if (result === 'loss') userData.losses++;
+            else if (result === 'draw') userData.draws++;
+            localStorage.setItem('archersChess_user', JSON.stringify(userData));
+            updateProfileUI();
+        }
+
+        function resetStats() {
+            if(confirm("Reset your career stats?")) {
+                userData.wins = 0; userData.losses = 0; userData.draws = 0;
+                localStorage.setItem('archersChess_user', JSON.stringify(userData));
+                updateProfileUI();
+            }
+        }
+
+        // --- Audio Context ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playTone(freq, type, duration, vol) {
             const osc = audioCtx.createOscillator();
@@ -104,11 +168,12 @@
 
         const sounds = {
             move: () => playTone(400, 'sine', 0.1, 0.1),
-            capture: () => { playTone(300, 'triangle', 0.2, 0.15); playTone(150, 'triangle', 0.2, 0.1); },
-            check: () => { playTone(880, 'sawtooth', 0.1, 0.05); setTimeout(() => playTone(880, 'sawtooth', 0.1, 0.05), 150); },
+            capture: () => playTone(150, 'triangle', 0.2, 0.1),
+            check: () => { playTone(880, 'sawtooth', 0.1, 0.05); setTimeout(()=>playTone(880, 'sawtooth', 0.1, 0.05),150); },
             win: () => { [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playTone(f, 'square', 0.4, 0.05), i * 150)); }
         };
 
+        // --- Game Engine ---
         const canvas = document.getElementById('board');
         const ctx = canvas.getContext('2d');
         const SQ = 60; const FILES = 10; const RANKS = 8;
@@ -122,7 +187,6 @@
         function isWhite(p) { return p && p === p.toUpperCase(); }
 
         function init() {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
             board.fill(null); captures = { w: [], b: [] }; gameOver = false; turn = 'w'; selected = null;
             const setup = ['A','R','N','B','Q','K','B','N','R','A'];
             for(let f=0; f<FILES; f++) {
@@ -186,7 +250,6 @@
             for (let t = 0; t < board.length; t++) {
                 if (validateMoveBasic(sq, t)) {
                     let temp = board[t], p = board[sq];
-                    // STRICT: Cannot capture a king
                     if (temp && temp.toUpperCase() === 'K') continue;
                     board[t] = p; board[sq] = null;
                     let safe = !isKingInCheck(isWhite(p) ? 'w' : 'b');
@@ -200,13 +263,10 @@
         function makeMove(s, t) {
             if (gameOver) return;
             let p = board[s], tp = board[t];
-            
             if (tp) { 
                 if (isWhite(tp)) captures.w.push(tp); else captures.b.push(tp); 
                 sounds.capture();
-            } else {
-                sounds.move();
-            }
+            } else sounds.move();
 
             board[t] = p; board[s] = null;
             if (p === 'P' && t % RANKS === 7) board[t] = 'Q';
@@ -214,7 +274,6 @@
             
             turn = turn === 'w' ? 'b' : 'w';
             updateUI(); drawBoard();
-            
             if (isKingInCheck(turn)) sounds.check();
 
             let hasMoves = false;
@@ -226,15 +285,21 @@
             if (!hasMoves) {
                 gameOver = true;
                 document.getElementById('game-over-overlay').style.display = 'flex';
-                let winMsg = isKingInCheck(turn) ? (turn==='w'?"AI WINS!":"YOU WIN!") : "STALEMATE";
-                document.getElementById('win-message').textContent = winMsg;
-                if (winMsg === "YOU WIN!") sounds.win();
+                let check = isKingInCheck(turn);
+                let msg = "";
+                if (check) {
+                    if (turn === 'w') { msg = "AI WINS!"; recordResult('loss'); }
+                    else { msg = "YOU WIN!"; recordResult('win'); sounds.win(); }
+                } else {
+                    msg = "STALEMATE"; recordResult('draw');
+                }
+                document.getElementById('win-message').textContent = msg;
             }
         }
 
         function updateUI() {
-            document.getElementById('white-captures').textContent = captures.w.map(p => pieceSymbols[p]).join('');
-            document.getElementById('black-captures').textContent = captures.b.map(p => pieceSymbols[p]).join('');
+            document.getElementById('white-captures').innerHTML = "AI:<br>" + captures.w.map(p => pieceSymbols[p]).join('');
+            document.getElementById('black-captures').innerHTML = "YOU:<br>" + captures.b.map(p => pieceSymbols[p]).join('');
             let status = document.getElementById('status');
             if (isKingInCheck(turn)) status.innerHTML = `<span class="check-alert">CHECK!</span> ${turn==='w'?'Your':'AI'} Turn`;
             else status.textContent = turn === 'w' ? "Your Turn" : "AI Thinking...";
@@ -247,8 +312,6 @@
                     let x = f*SQ, y = (7-r)*SQ;
                     ctx.fillStyle = (f+r)%2===0 ? '#f0d9b5' : '#b58863';
                     ctx.fillRect(x,y,SQ,SQ);
-                    ctx.font = '10px Arial'; ctx.textAlign = 'left'; ctx.fillStyle = (f+r)%2===0 ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)';
-                    ctx.fillText(fileLabels[f] + (r + 1), x + 4, y + 10);
                     let p = board[idx(f,r)];
                     if (p) {
                         ctx.fillStyle = isWhite(p) ? '#fff' : '#000';
@@ -266,7 +329,7 @@
             const f = Math.floor((e.clientX-rect.left)/SQ), r = 7-Math.floor((e.clientY-rect.top)/SQ);
             const sq = idx(f,r);
             if (selected === null) {
-                if (board[sq] && isWhite(board[sq])) { selected = sq; if (audioCtx.state === 'suspended') audioCtx.resume(); drawBoard(); }
+                if (board[sq] && isWhite(board[sq])) { selected = sq; drawBoard(); }
             } else {
                 if (getValidMoves(selected).includes(sq)) {
                     makeMove(selected, sq);
@@ -290,6 +353,8 @@
                 makeMove(m.f, m.t);
             }
         }
+
+        loadUser();
         init();
     </script>
 </body>
