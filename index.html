@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archers Chess v2.9</title>
+    <title>Archers Chess v3.0</title>
     <style>
         :root {
             --primary: #5d4037; --accent: #8b0000; --bg: #edeadf;
@@ -72,7 +72,7 @@
             <div id="caps-white" style="font-size:24px; min-height:45px; display:flex; flex-wrap:wrap;"></div>
             
             <h3 style="margin-top:20px;">AI Status</h3>
-            <p style="font-size:0.85em; color:#555;">Positional Engine Active.<br>Optimized with Pseudo-Legal branching for stability.</p>
+            <p style="font-size:0.85em; color:#555;">Async Engine Active.<br>Yielding calculations to prevent browser lockouts.</p>
         </div>
 
         <div class="rules-overlay">
@@ -100,15 +100,15 @@
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('archers_v29_db')) || [];
-        let user = localStorage.getItem('archers_v29_user') || "Guest";
+        let db = JSON.parse(localStorage.getItem('archers_v30_db')) || [];
+        let user = localStorage.getItem('archers_v30_user') || "Guest";
 
-        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v29_user', user); refreshUI(); } }
+        function doLogin() { let n = prompt("Username:", user); if(n) { user = n.trim(); localStorage.setItem('archers_v30_user', user); refreshUI(); } }
         function saveScore(res) {
             let p = db.find(x => x.name === user);
             if(!p) { p = {name: user, pts: 0}; db.push(p); }
             if(res === 'w') p.pts += 3; if(res === 'd') p.pts += 1;
-            localStorage.setItem('archers_v29_db', JSON.stringify(db));
+            localStorage.setItem('archers_v30_db', JSON.stringify(db));
             refreshUI();
         }
         function refreshUI() {
@@ -186,7 +186,6 @@
             return false;
         }
 
-        // Optimized safe move generation that stops the browser from freezing
         function getMoves(sq, b, checkSafe=true) {
             let m = [];
             let p = b[sq];
@@ -199,7 +198,6 @@
                     let ok = true;
                     if(k !== -1) {
                         for(let i=0; i<80; i++) {
-                            // Added "break" inside the validation to dramatically reduce required calculations
                             if(b[i] && isW(b[i])!==isW(p) && canMove(i, k, b, false)) { ok = false; break; }
                         }
                     }
@@ -232,7 +230,8 @@
             if(!checkEnd()) {
                 if(turn==='b') {
                     gameLocked = true; 
-                    setTimeout(ai, 50); 
+                    // Let the browser paint the user's move visually before triggering the async AI
+                    setTimeout(ai, 20); 
                 } else {
                     gameLocked = false;
                 }
@@ -278,22 +277,28 @@
             }
         }
 
-        function ai() {
+        // The "Think Differently" Fix: Async function to prevent UI Lockouts
+        async function ai() {
             let ms = []; 
             for(let i=0; i<80; i++) if(board[i] && !isW(board[i])) getMoves(i, board, true).forEach(m=>ms.push({s:i, t:m}));
             if(ms.length===0) { gameLocked=false; return checkEnd(); }
 
             let bM = ms[0], bV = 999999;
             
-            for(let m of ms) {
+            for(let i=0; i<ms.length; i++) {
+                let m = ms[i];
                 let o = board[m.t]; board[m.t]=board[m.s]; board[m.s]=null;
                 
-                // Replaced the illegal random array sort with a stable mathematical tiebreaker logic.
-                // This guarantees the browser will not crash on execution.
-                let v = minimax(board, 1, -1000000, 1000000, true) + (Math.random() * 0.1);
+                let v = minimax(board, 1, -1000000, 1000000, true);
                 
                 board[m.s]=board[m.t]; board[m.t]=o;
                 if(v < bV) { bV = v; bM = m; }
+
+                // This line is the magic fix: It tells the browser to pause calculation for 0ms, 
+                // allowing it to process clicks, animations, and avoid watchdog-crashing.
+                if (i % 3 === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
             }
             exec(bM.s, bM.t);
             gameLocked = false;
@@ -310,7 +315,6 @@
                 over = true; let k = board.indexOf(turn==='w'?'K':'k'), ic = false;
                 if(k!==-1) for(let i=0; i<80; i++) if(board[i] && isW(board[i])!==(turn==='w') && canMove(i, k, board, false)) { ic = true; break; }
                 
-                // Allowed the final move graphics to render before issuing the checkmate alert
                 setTimeout(() => {
                     alert(ic ? (turn==='b'?"CHECKMATE - WHITE WINS!":"CHECKMATE - BLACK WINS!") : "STALEMATE!");
                     if(ic) { saveScore(turn==='b' ? 'w' : 'l'); } else { saveScore('d'); }
